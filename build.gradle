@@ -1,3 +1,5 @@
+// It is advised to not edit this file directly, in order to update script easily.
+// Instead, edit gradle/scripts/extra.gradle to customize the build.
 import org.jetbrains.gradle.ext.Gradle
 
 plugins {
@@ -5,28 +7,32 @@ plugins {
     id 'java-library'
     id 'maven-publish'
     id 'org.jetbrains.gradle.plugin.idea-ext' version '1.4.1'
-    id 'com.gradleup.shadow' version '9.4.0'
-    id 'xyz.wagyourtail.unimined' version '1.4.16-kappa'
+    id 'xyz.wagyourtail.unimined' version '1.4.25-kappa'
     id 'net.kyori.blossom' version '2.2.0'
-    id 'com.diffplug.spotless' version '8.4.0'
+    id 'com.diffplug.spotless' version '8.6.0'
+    id 'com.gradleup.shadow' version '9.4.2' apply false
 }
 
 apply from: 'gradle/scripts/helpers.gradle'
+
+if (propertyBool('enable_shadow')) {
+    apply plugin: 'com.gradleup.shadow'
+}
 
 // Early Assertions
 assertProperty 'mod_version'
 assertProperty 'root_package'
 assertProperty 'mod_id'
+assertProperty 'mod_package'
 assertProperty 'mod_name'
 
-assertSubProperties 'use_lombok_ap', 'lombok_version'
 assertSubProperties 'use_access_transformer', 'access_transformer_locations'
 assertSubProperties 'is_coremod', 'coremod_includes_mod', 'coremod_plugin_class_name'
-assertSubProperties 'use_asset_mover', 'asset_mover_version'
 
 setDefaultProperty 'generate_sources_jar', true, false
 setDefaultProperty 'generate_javadocs_jar', true, false
-setDefaultProperty 'minecraft_username', true, 'Developer'
+setDefaultProperty 'enable_shadow', false, false
+setDefaultProperty 'minecraft_username', true, 'Dev'
 setDefaultProperty 'extra_jvm_args', false, ''
 
 version = propertyString('mod_version')
@@ -55,10 +61,15 @@ configurations {
     compileOnly.extendsFrom(modCompileOnly)
     modRuntimeOnly
     runtimeOnly.extendsFrom(modRuntimeOnly)
+    if (propertyBool('enable_shadow')) {
+        shaded
+        implementation.extendsFrom(shaded)
+    }
 }
 
 String remapTaskName = propertyBool('enable_shadow') ? "remapShadowJar" : "remapJar"
 
+//noinspection GroovyAssignabilityCheck
 unimined.minecraft {
     version "1.12.2"
 
@@ -70,9 +81,9 @@ unimined.minecraft {
         if (propertyBool('use_access_transformer')) {
             accessTransformer "${rootProject.projectDir}/src/main/resources/${propertyString('access_transformer_locations')}"
         }
-        loader "0.5.6-alpha"
-        runs.auth.username = minecraft_username
+        loader "0.5.15-alpha"
         runs.all {
+            args += ['--username', minecraft_username]
             def extraArgs = propertyString('extra_jvm_args')
             if (extraArgs != null && !extraArgs.trim().isEmpty()) {
                 jvmArgs += extraArgs.split { "\\s+" }.toList()
@@ -90,14 +101,10 @@ unimined.minecraft {
 
     defaultRemapJar = false
 
-    String jarTaskName = propertyBool('enable_shadow') ? "shadowJar" : "jar"
+    if (sourceSet == sourceSets.main) {
+        String jarTaskName = propertyBool('enable_shadow') ? "shadowJar" : "jar"
 
-    remap(tasks.named(jarTaskName).get()) {
-        mixinRemap {
-            enableBaseMixin()
-            enableMixinExtra()
-            disableRefmap()
-        }
+        remap(tasks.named(jarTaskName).get())
     }
 
     mods {
@@ -106,19 +113,11 @@ unimined.minecraft {
     }
 }
 
+// Do not configure your deps here!
+// Check gradle/scripts/dependencies.gradle for that.
 dependencies {
-    if (propertyBool('use_lombok_ap')) {
-        compileOnly "org.projectlombok:lombok:${propertyString('lombok_version')}"
-        annotationProcessor "org.projectlombok:lombok:${propertyString('lombok_version')}"
-
-        testCompileOnly "org.projectlombok:lombok:${propertyString('lombok_version')}"
-        testAnnotationProcessor "org.projectlombok:lombok:${propertyString('lombok_version')}"
-    }
-    if (propertyBool('use_asset_mover')) {
-        implementation "com.cleanroommc:assetmover:${propertyString('asset_mover_version')}"
-    }
     if (propertyBool('enable_junit_testing')) {
-        testImplementation 'org.junit.jupiter:junit-jupiter:6.0.3'
+        testImplementation 'org.junit.jupiter:junit-jupiter:6.1.0'
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     }
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
@@ -137,7 +136,7 @@ sourceSets {
                 property('mod_id', propertyString('mod_id'))
                 property('mod_name', propertyString('mod_name'))
                 property('mod_version', propertyString('mod_version'))
-                property('package', "${root_package}.${mod_id}")
+                property('package', propertyString('mod_package'))
             }
             resources {
                 property('mod_id', propertyString('mod_id'))
@@ -159,12 +158,8 @@ sourceSets {
     }
 }
 
-if (!propertyBool('enable_shadow')) {
-    shadowJar.enabled = false
-}
-
 compileJava {
-    sourceCompatibility = targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = targetCompatibility = JavaVersion.VERSION_25
 }
 
 jar {
@@ -198,12 +193,19 @@ jar {
     finalizedBy(tasks.named(remapTaskName).get())
 }
 
-
-shadowJar {
-    configurations = [project.configurations.shadow]
-    archiveClassifier = "shadow"
+if (propertyBool('enable_shadow')) {
+    // Shade deps to the dev jar, so the normal dev jar will contain deps
+    shadowJar {
+        archiveClassifier = 'dev'
+        //noinspection GroovyAssignabilityCheck,GroovyAccessibility
+        configurations = [ project.configurations.shaded ]
+    }
+    // Unshaded dev jar get 'plain' as name
+    tasks.named("jar").configure {
+        finalizedBy shadowJar
+        archiveClassifier = "plain"
+    }
 }
-
 
 tasks.named(remapTaskName).configure {
     doFirst {
@@ -221,8 +223,8 @@ idea {
     project {
         settings {
             runConfigurations {
-                "0. Apply Spotless"(Gradle) {
-                    taskNames = ["spotlessApply"]
+                "0. Gen Sources"(Gradle) {
+                    taskNames = ["genSources"]
                 }
                 "1. Run Client"(Gradle) {
                     taskNames = ["runClient"]
@@ -232,6 +234,9 @@ idea {
                 }
                 "3. Build Mod"(Gradle) {
                     taskNames = ["build"]
+                }
+                "4. Apply Spotless"(Gradle) {
+                    taskNames = ["spotlessApply"]
                 }
             }
             compiler.javac {
@@ -247,7 +252,7 @@ idea {
 }
 
 compileTestJava {
-    sourceCompatibility = targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = targetCompatibility = JavaVersion.VERSION_25
 }
 
 test {
