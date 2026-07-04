@@ -12,7 +12,7 @@ Backport of MrCrayfish's wonderful mod [Catalogue, aka MrCrayfish's Mod List](ht
 - For developers, you can try to add new props in mcmod.info. Catalogue in the PR above has the ability to read them and apply. The new props follow. 
   - iconFile: a string, should point to a square PNG file.
   - iconItem: a string, should be in the format "minecraft:stone". Metadata is allowed. This will not be applied if iconFile is valid.
-  - backgroundFile: a string, should point to a 512x256 PNG file. It will be the mod's background.
+  - backgroundFile: a string, should point to a PNG file, which will be rendered as the mod’s background with aspect-preserving cover cropping to fill the details panel, then faded out toward the bottom.
   - license: a string, will be displayed at the bottom of the mod info page.
   - issueTrackerUrl: a string, should be a link. The "Submit Bug" button will open it when clicked.
 
