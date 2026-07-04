@@ -18,7 +18,6 @@ import net.minecraftforge.fml.common.ModMetadata;
 import net.minecraftforge.fml.common.versioning.ArtifactVersion;
 
 import javax.annotation.Nullable;
-import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -155,34 +154,18 @@ public class CleanroomModData implements IModData {
 
     @Override
     public boolean hasConfig() {
-        ensureCarbonConfigsRegistered();
         IModGuiFactory factory = FMLClientHandler.instance().getGuiFactoryFor(this.info);
-        if (factory == null) return false;
-        return factory.hasConfigGui();
+        return factory != null && factory.hasConfigGui();
     }
 
     @Override
     public void openConfigScreen(Minecraft minecraft, GuiScreen parent) {
         try {
             IModGuiFactory factory = FMLClientHandler.instance().getGuiFactoryFor(this.info);
-            GuiScreen configScreen = factory.createConfigGui(parent);
-            minecraft.displayGuiScreen(configScreen);
+            if (factory == null) return;
+            minecraft.displayGuiScreen(factory.createConfigGui(parent));
         } catch (Exception e) {
             Catalogue.LOG.error("There was a critical issue trying to build the config GUI for {}", this.getModId(), e);
-        }
-    }
-
-    private static boolean carbonConfigRegistrationAttempted;
-
-    private static void ensureCarbonConfigsRegistered() {
-        if (carbonConfigRegistrationAttempted) return;
-        carbonConfigRegistrationAttempted = true;
-        try {
-            Class<?> cls = Class.forName("carbonconfiglib.impl.internal.EventHandler");
-            Method m = cls.getDeclaredMethod("registerConfigs");
-            m.setAccessible(true);
-            m.invoke(cls.getField("INSTANCE").get(null));
-        } catch (ReflectiveOperationException | LinkageError ignored) {
         }
     }
 
@@ -207,9 +190,12 @@ public class CleanroomModData implements IModData {
     @Override
     public void drawCheckIcon(Minecraft minecraft, CheckResult result, int x, int y) {
         GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
         int vOffset = result.animated() && (System.currentTimeMillis() / 800 & 1) == 1 ? 8 : 0;
         minecraft.getTextureManager().bindTexture(result.textures());
         Gui.drawModalRectWithCustomSizedTexture(x, y, result.texOffset() * 8, vOffset, 8, 8, 64, 16);
+        GlStateManager.disableBlend();
     }
 
     @Nullable
@@ -217,6 +203,7 @@ public class CleanroomModData implements IModData {
     public String getCheckText(CheckResult update) {
         ForgeVersion.CheckResult result = ForgeVersion.getCleanResult(this.info);
         if (result == null) return null;
+
         boolean hasPage = update.homepage() != null && !update.homepage().isBlank();
         return switch (result.status) {
             case BETA -> TextFormatting.GOLD + I18n.format("catalogue.gui.beta");
