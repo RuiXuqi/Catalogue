@@ -10,7 +10,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           
@@ -22,14 +22,14 @@ jobs:
           
       - uses: gradle/actions/setup-gradle@v6
         with:
-          gradle-version: 9.4.1
+          gradle-version: 9.6.1
         name: Set up Gradle
         
       - name: Add permission
         run: chmod +x ./gradlew
         
       - name: Execute Gradle build
-        run: ./gradlew build -x spotlessCheck
+        run: ./gradlew build
 
       - name: Get Changes between Tags
         id: changes
@@ -48,8 +48,7 @@ jobs:
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
 
           files: |
-            build/libs/!(*-@(dev|sources|javadoc)).jar
-            build/libs/*-@(dev|sources|javadoc).jar
+            build/libs/*.jar
           loaders: forge
           game-versions: 1.12.2
           java: |

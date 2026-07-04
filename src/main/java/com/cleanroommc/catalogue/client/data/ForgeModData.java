@@ -1,7 +1,7 @@
-package com.cleanroommc.catalogue.client;
+package com.cleanroommc.catalogue.client.data;
 
+import com.cleanroommc.catalogue.Catalogue;
 import com.cleanroommc.catalogue.CatalogueConfig;
-import com.cleanroommc.catalogue.CatalogueConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiScreen;
@@ -9,16 +9,16 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.client.resources.IResourcePack;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.common.ForgeVersion;
 import net.minecraftforge.fml.client.FMLClientHandler;
 import net.minecraftforge.fml.client.IModGuiFactory;
 import net.minecraftforge.fml.common.ModContainer;
 import net.minecraftforge.fml.common.ModMetadata;
 import net.minecraftforge.fml.common.versioning.ArtifactVersion;
+import org.apache.commons.lang3.StringUtils;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -26,18 +26,18 @@ import java.util.stream.Collectors;
  * Author: MrCrayfish
  */
 public class ForgeModData implements IModData {
-    public static final ResourceLocation VERSION_CHECK_ICONS = new ResourceLocation("forge", "textures/gui/version_check_icons.png");
-    public static final List<String> LIB_MODS = Arrays.asList(CatalogueConfig.libraryList);
-    public static final List<String> IGNORED_DEPENDENCIES = Arrays.asList(CatalogueConfig.ignoredDependenciesList);
+    private static final ResourceLocation VERSION_CHECK_ICONS = new ResourceLocation("forge", "textures/gui/version_check_icons.png");
+    private static final List<String> LIB_MODS = Arrays.asList(CatalogueConfig.libraryList);
+    private static final List<String> IGNORED_DEPENDENCIES = Arrays.asList(CatalogueConfig.ignoredDependenciesList);
 
-    private final @Nonnull ModContainer info;
+    private final ModContainer info;
     private final @Nullable ModMetadata metadata;
     private final Type type;
     private final Set<String> dependencies;
     private final Set<String> childMods;
     private final String modId;
 
-    public ForgeModData(@Nonnull ModContainer info) {
+    public ForgeModData(ModContainer info) {
         this.info = info;
         this.metadata = info.getMetadata();
         this.type = this.analyzeType(info);
@@ -143,23 +143,11 @@ public class ForgeModData implements IModData {
         return this.metadata != null && this.metadata.parentMod != null ? this.metadata.parentMod.getName() : null;
     }
 
-    @Nullable
-    @Override
-    public Update getUpdate() {
-        ForgeVersion.CheckResult result = ForgeVersion.getResult(this.info);
-        if (result.status.shouldDraw()) {
-            return new Update(result.status.isAnimated(), result.url, result.status.getSheetOffset(), VERSION_CHECK_ICONS, true, null, result.url);
-        }
-        return null;
-    }
-
-    @Nonnull
     @Override
     public Set<String> getDependencies() {
         return this.dependencies;
     }
 
-    @Nonnull
     @Override
     public Set<String> getChildMods() {
         return this.childMods;
@@ -167,52 +155,67 @@ public class ForgeModData implements IModData {
 
     @Override
     public boolean hasConfig() {
-        ensureCarbonConfigsRegistered();
-        IModGuiFactory guiFactory = FMLClientHandler.instance().getGuiFactoryFor(this.info);
-        if (guiFactory == null) return false;
-        return guiFactory.hasConfigGui();
+        IModGuiFactory factory = FMLClientHandler.instance().getGuiFactoryFor(this.info);
+        return factory != null && factory.hasConfigGui();
     }
 
     @Override
     public void openConfigScreen(Minecraft minecraft, GuiScreen parent) {
         try {
-            IModGuiFactory guiFactory = FMLClientHandler.instance().getGuiFactoryFor(this.info);
-            GuiScreen newScreen = guiFactory.createConfigGui(parent);
-            minecraft.displayGuiScreen(newScreen);
+            IModGuiFactory factory = FMLClientHandler.instance().getGuiFactoryFor(this.info);
+            if (factory == null) return;
+            minecraft.displayGuiScreen(factory.createConfigGui(parent));
         } catch (Exception e) {
-            CatalogueConstants.LOG.error("There was a critical issue trying to build the config GUI for {}", this.getModId(), e);
+            Catalogue.LOG.error("There was a critical issue trying to build the config GUI for {}", this.getModId(), e);
         }
-    }
-
-    private static boolean carbonConfigRegistrationAttempted;
-
-    private static void ensureCarbonConfigsRegistered() {
-        if (carbonConfigRegistrationAttempted) return;
-        carbonConfigRegistrationAttempted = true;
-        try {
-            Class<?> cls = Class.forName("carbonconfiglib.impl.internal.EventHandler");
-            Method m = cls.getDeclaredMethod("registerConfigs");
-            m.setAccessible(true);
-            m.invoke(cls.getField("INSTANCE").get(null));
-        } catch (ReflectiveOperationException | LinkageError ignored) {
-        }
-    }
-
-    @Override
-    public void drawUpdateIcon(Minecraft minecraft, Update update, int x, int y) {
-        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-        int vOffset = update.animated() && (System.currentTimeMillis() / 800 & 1) == 1 ? 8 : 0;
-        minecraft.getTextureManager().bindTexture(update.textures());
-        Gui.drawModalRectWithCustomSizedTexture(x, y, update.texOffset() * 8, vOffset, 8, 8, 64, 16);
     }
 
     @Nullable
     @Override
-    public String getUpdateText(Update update) {
-        if (update != null && update.homepage() != null && !update.homepage().trim().isEmpty()) {
-            return I18n.format("catalogue.gui.update_available_no_version", update.homepage());
+    public CheckResult getCheckResult() {
+        ForgeVersion.CheckResult result = ForgeVersion.getResult(this.info);
+        if (result.status.shouldDraw()) {
+            return new CheckResult(
+                    result.status == ForgeVersion.Status.OUTDATED || result.status == ForgeVersion.Status.BETA_OUTDATED,
+                    result.status.isAnimated(),
+                    result.status.getSheetOffset(),
+                    VERSION_CHECK_ICONS,
+                    result.target != null ? result.target.toString() : null,
+                    result.url
+            );
         }
         return null;
+    }
+
+    @Override
+    public void drawCheckIcon(Minecraft minecraft, CheckResult result, int x, int y) {
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
+        int vOffset = result.animated() && (System.currentTimeMillis() / 800 & 1) == 1 ? 8 : 0;
+        minecraft.getTextureManager().bindTexture(result.textures());
+        Gui.drawModalRectWithCustomSizedTexture(x, y, result.texOffset() * 8, vOffset, 8, 8, 64, 16);
+        GlStateManager.disableBlend();
+    }
+
+    @Nullable
+    @Override
+    public String getCheckText(CheckResult update) {
+        ForgeVersion.CheckResult result = ForgeVersion.getResult(this.info);
+        if (result == null) return null;
+
+        boolean hasPage = StringUtils.isNotBlank(update.url());
+        return switch (result.status) {
+            case BETA -> TextFormatting.GOLD + I18n.format("catalogue.gui.beta");
+            case AHEAD -> TextFormatting.LIGHT_PURPLE + I18n.format("catalogue.gui.ahead", update.latestFound());
+            case BETA_OUTDATED -> TextFormatting.GOLD + (hasPage ?
+                    I18n.format("catalogue.gui.beta_update_available", update.latestFound(), update.url()) :
+                    I18n.format("catalogue.gui.beta_update_available_no_page", update.latestFound()));
+            case OUTDATED -> TextFormatting.GREEN + (hasPage ?
+                    I18n.format("catalogue.gui.update_available", update.latestFound(), update.url()) :
+                    I18n.format("catalogue.gui.update_available_no_page", update.latestFound()));
+            default -> null;
+        };
     }
 
     @Nullable
@@ -221,7 +224,7 @@ public class ForgeModData implements IModData {
         return FMLClientHandler.instance().getResourcePackFor(this.getModId());
     }
 
-    private Type analyzeType(@Nonnull ModContainer info) {
+    private Type analyzeType(ModContainer info) {
         if (this.metadata != null && this.metadata.parentMod != null) {
             return Type.CHILD;
         } else if (LIB_MODS.contains(info.getModId())) {
@@ -231,20 +234,20 @@ public class ForgeModData implements IModData {
         }
     }
 
-    private static @Nonnull Set<String> analyzeDependencies(@Nonnull ModContainer source) {
+    private static Set<String> analyzeDependencies(ModContainer source) {
         List<? extends ArtifactVersion> versions = source.getDependencies();
         return versions.stream()
                 .map(ArtifactVersion::getLabel)
                 .filter(modid -> !IGNORED_DEPENDENCIES.contains(modid))
-                .collect(Collectors.collectingAndThen(Collectors.toSet(), Collections::unmodifiableSet));
+                .collect(Collectors.toSet());
     }
 
-    private static @Nonnull Set<String> analyzeChildMods(@Nonnull ModContainer source) {
+    private static Set<String> analyzeChildMods(ModContainer source) {
         ModMetadata metadata = source.getMetadata();
         if (metadata == null) return Collections.emptySet();
         return metadata.childMods.stream()
                 .filter(Objects::nonNull)
                 .map(ModContainer::getModId)
-                .collect(Collectors.collectingAndThen(Collectors.toSet(), Collections::unmodifiableSet));
+                .collect(Collectors.toSet());
     }
 }

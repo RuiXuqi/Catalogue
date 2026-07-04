@@ -9,14 +9,23 @@ repositories {
     maven {
         name = 'CurseMaven'
         url = 'https://cursemaven.com'
+        content {
+            includeGroup 'curse.maven'
+        }
     }
     maven {
         name = 'CleanroomCurseMaven'
         url = 'https://curse.cleanroommc.com'
+        content {
+            includeGroup 'curse.maven'
+        }
     }
     maven {
         name = 'Modrinth'
         url = 'https://api.modrinth.com/maven'
+        content {
+            includeGroup 'maven.modrinth'
+        }
     }
     mavenCentral()
     mavenLocal() // Must be last for caching to work
@@ -37,6 +46,11 @@ dependencies {
     // By wrapping a dependency descriptor in rfg.deobf() method call, the dependency is queued for deobfuscation
     // When deobfuscating, RFG respects the mapping_channel + mapping_version stated in gradle.properties
 
+    // Example - Shading dependencies:
+    // Using the shadow plugin, by using the "shaded" configuration, the dependency will be shaded into your output jar
+    // shaded 'mezz:jei:4.31.2' << will shade HadEnoughItems 4.31.2 directly into your jar
+    // For more configuration options: see the bottom of this file and: https://gradleup.com/shadow/configuration/
+
     // Example - CurseMaven dependencies:
     // 'curse.maven:had-enough-items-557549:4543375' << had-enough-items = project slug, 557549 = project id, 4543375 = file id
     // Full documentation: https://cursemaven.com/
@@ -53,7 +67,7 @@ dependencies {
     // runtimeOnly = runtime dependency
     // compileOnly = compile time dependency
     // annotationProcessor = annotation processing dependencies
-    // embed = bundle dependencies into final output artifact (no relocation)
+    // shaded = includes dependency in output
 
     // Transitive dependencies:
     // (Dependencies that your dependency depends on)
@@ -62,4 +76,19 @@ dependencies {
     // implementation ('com.google.code.gson:gson:2.8.6') {
     //     transitive = false
     // }
+}
+
+if (propertyBool('enable_shadow')) {
+    tasks.named("shadowJar").configure {
+        // Exclude specific parts of deps to keep your jar clean
+        // dependencies {
+        //     exclude 'META-INF/maven/**'
+        // }
+
+        // Relocate specific parts of deps, so multiple shaded classes in mods will not conflict
+        // relocate "mezz.jei", "shaded.mezz.jei"
+
+        // Remove unused classes automatically. May cause issues if they are accessed by reflection
+        // minimize()
+    }
 }
