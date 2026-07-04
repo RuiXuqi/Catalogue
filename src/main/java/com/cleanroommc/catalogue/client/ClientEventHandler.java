@@ -1,16 +1,19 @@
 package com.cleanroommc.catalogue.client;
 
+import com.cleanroommc.catalogue.Catalogue;
 import com.cleanroommc.catalogue.CatalogueConfig;
 import com.cleanroommc.catalogue.CatalogueConstants;
 import com.cleanroommc.catalogue.client.screen.CatalogueModListScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraftforge.client.event.GuiOpenEvent;
+import net.minecraftforge.common.config.Config;
+import net.minecraftforge.common.config.ConfigManager;
 import net.minecraftforge.fml.client.GuiModList;
+import net.minecraftforge.fml.client.event.ConfigChangedEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;
-import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Field;
 
@@ -18,21 +21,28 @@ import java.lang.reflect.Field;
  * Author: MrCrayfish
  */
 @Mod.EventBusSubscriber(modid = CatalogueConstants.MOD_ID, value = Side.CLIENT)
-public class ClientHandler {
+public final class ClientEventHandler {
     @SubscribeEvent
-    public static void onOpenScreen(@NotNull GuiOpenEvent event) {
+    public static void onOpenScreen(GuiOpenEvent event) {
         if (!CatalogueConfig.enable) return;
-        if (event.getGui() instanceof GuiModList screen) {
+        if (event.getGui() instanceof GuiModList modList) {
             GuiScreen parent;
             try {
                 Field field = GuiModList.class.getDeclaredField("mainMenu");
                 field.setAccessible(true);
-                parent = (GuiScreen) field.get(screen);
+                parent = (GuiScreen) field.get(modList);
             } catch (Exception e) {
-                CatalogueConstants.LOG.error("Failed to get field mainMenu from GuiModList", e);
+                Catalogue.LOG.error("Failed to get field mainMenu from GuiModList", e);
                 parent = Minecraft.getMinecraft().currentScreen;
             }
             event.setGui(new CatalogueModListScreen(parent));
+        }
+    }
+
+    @SubscribeEvent
+    public static void onConfigChanged(ConfigChangedEvent.OnConfigChangedEvent event) {
+        if (event.getModID().equals(CatalogueConstants.MOD_ID)) {
+            ConfigManager.sync(CatalogueConstants.MOD_ID, Config.Type.INSTANCE);
         }
     }
 }

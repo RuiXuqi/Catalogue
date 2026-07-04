@@ -1,14 +1,17 @@
 package com.cleanroommc.catalogue;
 
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.Mod;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Author: MrCrayfish
  */
 @Mod(
-        modid = Reference.MOD_ID,
-        name = Reference.MOD_NAME,
-        version = Reference.VERSION,
+        modid = CatalogueConstants.MOD_ID,
+        name = CatalogueConstants.MOD_NAME,
+        version = CatalogueConstants.VERSION,
         dependencies = "required-after:cleanroom@[0.3.1-alpha,)",
         clientSideOnly = true,
         acceptableRemoteVersions = "*",
@@ -20,4 +23,9 @@ import net.minecraftforge.fml.common.Mod;
         }
 )
 public class Catalogue {
+    public static final Logger LOG = LoggerFactory.getLogger(CatalogueConstants.MOD_NAME);
+
+    public static ResourceLocation resource(String name) {
+        return new ResourceLocation(CatalogueConstants.MOD_ID, name);
+    }
 }
