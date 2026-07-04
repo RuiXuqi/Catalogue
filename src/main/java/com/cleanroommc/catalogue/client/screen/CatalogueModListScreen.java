@@ -367,8 +367,8 @@ public class CatalogueModListScreen extends GuiScreen implements DropdownMenuHan
             int versionWidth = this.fontRenderer.getStringWidth(version);
             if (RenderUtils.isMouseWithin(contentLeft + versionWidth + 5, 92, 8, 8, mouseX, mouseY)) {
                 IModData.CheckResult check = this.selectedModData.getCheckResult();
-                if (check != null && check.homepage() != null && !check.homepage().isBlank() && check.updatable()) {
-                    this.openLink(check.homepage());
+                if (check != null && check.url() != null && !check.url().isBlank() && check.updatable()) {
+                    this.openLink(check.url());
                     return;
                 }
             }

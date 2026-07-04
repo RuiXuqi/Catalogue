@@ -180,7 +180,6 @@ public class CleanroomModData implements IModData {
                     result.status.getSheetOffset(),
                     VERSION_CHECK_ICONS,
                     result.latestFound,
-                    result.url,
                     result.homepage
             );
         }
@@ -204,15 +203,15 @@ public class CleanroomModData implements IModData {
         ForgeVersion.CheckResult result = ForgeVersion.getCleanResult(this.info);
         if (result == null) return null;
 
-        boolean hasPage = update.homepage() != null && !update.homepage().isBlank();
+        boolean hasPage = update.url() != null && !update.url().isBlank();
         return switch (result.status) {
             case BETA -> TextFormatting.GOLD + I18n.format("catalogue.gui.beta");
             case AHEAD -> TextFormatting.LIGHT_PURPLE + I18n.format("catalogue.gui.ahead", update.latestFound());
             case BETA_OUTDATED -> TextFormatting.GOLD + (hasPage ?
-                    I18n.format("catalogue.gui.beta_update_available", update.latestFound(), update.homepage()) :
+                    I18n.format("catalogue.gui.beta_update_available", update.latestFound(), update.url()) :
                     I18n.format("catalogue.gui.beta_update_available_no_page", update.latestFound()));
             case OUTDATED -> TextFormatting.GREEN + (hasPage ?
-                    I18n.format("catalogue.gui.update_available", update.latestFound(), update.homepage()) :
+                    I18n.format("catalogue.gui.update_available", update.latestFound(), update.url()) :
                     I18n.format("catalogue.gui.update_available_no_page", update.latestFound()));
             default -> null;
         };

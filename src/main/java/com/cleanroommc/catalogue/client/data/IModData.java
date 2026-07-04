@@ -81,17 +81,15 @@ public interface IModData {
     /**
      * @param updatable   Whether the mod is outdated and the icon is clickable.
      * @param latestFound Latest version found in json.
-     * @param jsonUrl     The URL used to download json to check update.
-     * @param homepage    URL to download page.
+     * @param url         URL to download page.
      */
     record CheckResult(
             boolean updatable,
             boolean animated,
             int texOffset,
             ResourceLocation textures,
-            String latestFound,
-            @Nullable String jsonUrl,
-            @Nullable String homepage
+            @Nullable String latestFound,
+            @Nullable String url
     ) {
     }
 
