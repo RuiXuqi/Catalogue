@@ -1,21 +1,35 @@
 package com.cleanroommc.catalogue;
 
-import com.cleanroommc.catalogue.config.util.ConfigBuilder;
+import cpw.mods.fml.client.config.IConfigElement;
+import net.minecraftforge.common.config.ConfigElement;
 import net.minecraftforge.common.config.Configuration;
 
+import javax.annotation.Nonnull;
+import java.io.File;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
-public class CatalogueConfig {
+public final class CatalogueConfig {
+    private static final Map<String, Object> DEFAULT_VALUES = new HashMap<>();
+    private static Configuration CONFIG;
+
     private static final String[] CUSTOM_MOD_INFO_FIELDS = new String[]{
             "name", "description", "url", "issueTrackerUrl",
             "logoFile", "iconFile", "iconItem", "backgroundFile", "license", "credits"
     };
+    private static final Pattern CUSTOM_MOD_INFO_PATTERN = Pattern.compile(
+            "^[^:]+:(" + String.join("|", CUSTOM_MOD_INFO_FIELDS) + ")=[^,]*(,(" + String.join("|", CUSTOM_MOD_INFO_FIELDS) + ")=[^,]*)*$"
+    );
+
     public static boolean enable = true;
     public static String[] libraryList = new String[]{
             "Forge",
             "FML",
             "mcp",
             "gtnhlib",
+            "gtnhextlib",
             "hodgepodge",
             "unimixins",
             "lwjgl3ify"
@@ -27,72 +41,57 @@ public class CatalogueConfig {
             "mcp"
     };
     public static String[] customModInfo = new String[]{};
-    public static boolean enableBannerLimit = false;
-    public static int bannerMaxWidth = 1280;
-    public static int bannerMaxHeight = 256;
-    public static boolean enableIconLimit = false;
-    public static int iconMaxWidthHeight = 256;
 
-    /// Internal method, do not call
-    public static void build(ConfigBuilder builder) {
-        builder.pushCategory(Configuration.CATEGORY_GENERAL, null, null);
+    static void init(File configFile) {
+        if (CONFIG != null) throw new IllegalStateException("Init have been performed!");
+        CONFIG = new Configuration(configFile);
+        CONFIG.load();
+        buildConfig();
+    }
 
-        enable = builder.get(
+    public static void buildConfig() {
+        enable = CONFIG.get(
+                Configuration.CATEGORY_GENERAL,
                 "enable",
-                enable,
-                "Whether enable Catalogue. \nSetting it false will stop Catalogue redirecting Forge's mod list calls."
-        );
+                loadDefault(Configuration.CATEGORY_GENERAL, "enable", enable),
+                "Whether enable Catalogue."
+                        + "\nSetting it false will stop Catalogue redirecting Forge's mod list calls."
+        ).setLanguageKey("catalogue.config.enable").getBoolean();
 
-        libraryList = builder.getProp(
+        libraryList = CONFIG.get(
+                Configuration.CATEGORY_GENERAL,
                 "libraryList",
-                libraryList,
-                "The list of library mods' mod ids. \nThey will have grey names in the mod list."
-        ).setRequiresMcRestart(true).getStringList();
+                loadDefault(Configuration.CATEGORY_GENERAL, "libraryList", libraryList),
+                "The list of library mods' mod ids."
+                        + "\nThey will have grey names in the mod list."
+        ).setRequiresMcRestart(true).setLanguageKey("catalogue.config.library_list").getStringList();
 
-        ignoredDependenciesList = builder.getProp(
+        ignoredDependenciesList = CONFIG.get(
+                Configuration.CATEGORY_GENERAL,
                 "ignoredDependenciesList",
-                ignoredDependenciesList,
-                "The list of ignored dependencies' mod ids. \nThey will not be displayed when searching for dependencies/dependants."
-        ).setRequiresMcRestart(true).getStringList();
+                loadDefault(Configuration.CATEGORY_GENERAL, "ignoredDependenciesList", ignoredDependenciesList),
+                "The list of ignored dependencies' mod ids."
+                        + "\nThey will not be displayed when searching for dependencies/dependants."
+        ).setRequiresMcRestart(true).setLanguageKey("catalogue.config.ignored_dependencies_list").getStringList();
 
-        customModInfo = builder.getProp(
+        customModInfo = CONFIG.get(
+                Configuration.CATEGORY_GENERAL,
                 "customModInfo",
-                customModInfo,
+                loadDefault(Configuration.CATEGORY_GENERAL, "customModInfo", customModInfo),
                 "Custom mod info entries. \nFormat: modid:field1=value,field2=value2 \nAvailable fields: name, description, url, issueTrackerUrl, logoFile, iconFile, iconItem, backgroundFile, license, credits"
-        ).setRequiresMcRestart(true).setValidationPattern(Pattern.compile(
-                "^[^:]+:(" + String.join("|", CUSTOM_MOD_INFO_FIELDS) + ")=[^,]*(,(" + String.join("|", CUSTOM_MOD_INFO_FIELDS) + ")=[^,]*)*$"
-        )).getStringList();
+        ).setRequiresMcRestart(true).setLanguageKey("catalogue.config.custom_mod_info").setValidationPattern(CUSTOM_MOD_INFO_PATTERN).getStringList();
 
-        enableBannerLimit = builder.getProp(
-                "enableBannerLimit",
-                enableBannerLimit,
-                "Whether limit the size of mods' banners."
-        ).setRequiresMcRestart(true).getBoolean();
+        if (CONFIG.hasChanged()) CONFIG.save();
+    }
 
-        bannerMaxWidth = builder.getProp(
-                "bannerMaxWidth",
-                bannerMaxWidth,
-                "The maximum of banner's width. Will not work if Enable Banner Limit is set false."
-        ).setMinValue(0).setRequiresMcRestart(true).getInt();
+    @SuppressWarnings({"unchecked", "SameParameterValue"})
+    private static <T> T loadDefault(String category, String name, T currentValue) {
+        return (T) DEFAULT_VALUES.computeIfAbsent(category + Configuration.CATEGORY_SPLITTER + name, k -> currentValue);
+    }
 
-        bannerMaxHeight = builder.getProp(
-                "bannerMaxHeight",
-                bannerMaxHeight,
-                "The maximum of banner's height. Will not work if Enable Banner Limit is set false."
-        ).setMinValue(0).setRequiresMcRestart(true).getInt();
-
-        enableIconLimit = builder.getProp(
-                "enableIconLimit",
-                enableIconLimit,
-                "Whether limit the size of mods' icons."
-        ).setRequiresMcRestart(true).getBoolean();
-
-        iconMaxWidthHeight = builder.getProp(
-                "iconMaxWidthHeight",
-                iconMaxWidthHeight,
-                "The maximum of icon's width and height. Will not work if Enable Icon Limit is set false."
-        ).setMinValue(0).setRequiresMcRestart(true).getInt();
-
-        builder.popCategoryWithoutLangKey();
+    @SuppressWarnings("rawtypes")
+    @Nonnull
+    static List<IConfigElement> getRootElement() {
+        return new ConfigElement<>(CONFIG.getCategory(Configuration.CATEGORY_GENERAL)).getChildElements();
     }
 }

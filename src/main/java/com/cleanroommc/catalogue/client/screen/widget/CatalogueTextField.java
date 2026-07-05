@@ -1,169 +1,144 @@
 package com.cleanroommc.catalogue.client.screen.widget;
 
 import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiTextField;
+import net.minecraft.util.MathHelper;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 public class CatalogueTextField extends GuiTextField {
-    private final FontRenderer fontRenderer;
-    private boolean isTextTruncated;
-    @Nonnull
     private String suggestion = "";
+    private String hint = "";
     @Nullable
     private Consumer<String> responder;
     @Nullable
     private BiFunction<String, Integer, String> formatter;
 
-    public CatalogueTextField(FontRenderer fontRenderer, int x, int y, int width, int height) {
-        super(fontRenderer, x, y, width, height);
-        this.fontRenderer = fontRenderer;
+    public CatalogueTextField(FontRenderer font, int x, int y, int width, int height) {
+        super(font, x, y, width, height);
     }
 
-    // Values renamed by deepseek. Comments are handwrite.
     @Override
     public void drawTextBox() {
         if (!this.getVisible()) return;
 
-        if (this.getEnableBackgroundDrawing()) {
-            int borderColor = this.isFocused() ? 0xFFFFFFFF : 0xFFA0A0A0;
-            drawRect(this.xPosition - 1, this.yPosition - 1, this.xPosition + this.width + 1, this.yPosition + this.height + 1, borderColor);
+        boolean bordered = this.getEnableBackgroundDrawing();
+        if (bordered) {
+            drawRect(this.xPosition - 1, this.yPosition - 1, this.xPosition + this.width + 1, this.yPosition + this.height + 1, this.isFocused() ? 0xFFFFFFFF : 0xFFA0A0A0);
             drawRect(this.xPosition, this.yPosition, this.xPosition + this.width, this.yPosition + this.height, 0xFF000000);
         }
 
-        int textColor = this.isEnabled ? this.enabledColor : this.disabledColor;
+        int color = this.isEnabled ? this.enabledColor : this.disabledColor;
 
-        int cursorPosRelative = this.cursorPosition - this.lineScrollOffset;
-        int selectionEndRelative = this.selectionEnd - this.lineScrollOffset;
+        int cursorPosRel = this.cursorPosition - this.lineScrollOffset;
+        int selectionEndRel = this.selectionEnd - this.lineScrollOffset;
 
-        String visibleText = this.fontRenderer.trimStringToWidth(this.getText().substring(this.lineScrollOffset), this.getWidth());
+        String visibleText = this.field_146211_a.trimStringToWidth(this.getText().substring(this.lineScrollOffset), this.getWidth());
 
-        boolean isCursorVisible = cursorPosRelative >= 0 && cursorPosRelative <= visibleText.length();
-        boolean shouldDrawCursor = this.isFocused() && this.cursorCounter / 6 % 2 == 0 && isCursorVisible;
+        boolean cursorVisible = cursorPosRel >= 0 && cursorPosRel <= visibleText.length();
+        boolean drawCursor = this.isFocused() && this.cursorCounter / 6 % 2 == 0 && cursorVisible;
 
-        int textStartX = this.getEnableBackgroundDrawing() ? this.xPosition + 4 : this.xPosition;
-        int textStartY = this.getEnableBackgroundDrawing() ? this.yPosition + (this.height - 8) / 2 : this.yPosition;
-        int currentDrawX = textStartX;
+        int textX = bordered ? this.xPosition + 4 : this.xPosition;
+        int textY = bordered ? this.yPosition + (this.height - 8) / 2 : this.yPosition;
+        final int textStartX = textX;
 
-        if (selectionEndRelative > visibleText.length()) {
-            selectionEndRelative = visibleText.length();
-        }
+        selectionEndRel = MathHelper.clamp_int(selectionEndRel, 0, visibleText.length());
 
-        // Draw text before cursor
         if (!visibleText.isEmpty()) {
-            String rawTextBeforeCursor = isCursorVisible ? visibleText.substring(0, cursorPosRelative) : visibleText;
-            currentDrawX = this.fontRenderer.drawStringWithShadow(this.formatText(rawTextBeforeCursor, this.lineScrollOffset), textStartX, textStartY, textColor);
+            String beforeText = cursorVisible ? visibleText.substring(0, cursorPosRel) : visibleText;
+            textX = this.field_146211_a.drawStringWithShadow(this.formatText(beforeText, this.lineScrollOffset), textStartX, textY, color);
         }
 
-        this.isTextTruncated = this.cursorPosition < this.getText().length() || this.getText().length() >= this.getMaxStringLength();
-        int cursorDrawX = currentDrawX;
+        boolean textTruncated = this.cursorPosition < this.getText().length() || this.getText().length() >= this.getMaxStringLength();
+        int cursorX = textX;
 
-        if (!isCursorVisible) {
-            cursorDrawX = cursorPosRelative > 0 ? textStartX + this.width : textStartX;
-        } else if (this.isTextTruncated) {
-            cursorDrawX = currentDrawX - 1;
-            --currentDrawX;
+        if (!cursorVisible) {
+            cursorX = cursorPosRel > 0 ? textStartX + this.width : textStartX;
+        } else if (textTruncated) {
+            cursorX = textX - 1;
+            --textX;
         }
 
-        // Draw text after cursor
-        if (!visibleText.isEmpty() && isCursorVisible && cursorPosRelative < visibleText.length()) {
-            String rawTextAfterCursor = visibleText.substring(cursorPosRelative);
-            currentDrawX = this.fontRenderer.drawStringWithShadow(this.formatText(rawTextAfterCursor, this.cursorPosition), currentDrawX, textStartY, textColor);
+        if (!visibleText.isEmpty() && cursorVisible && cursorPosRel < visibleText.length()) {
+            String afterText = visibleText.substring(cursorPosRel);
+            textX = this.field_146211_a.drawStringWithShadow(this.formatText(afterText, this.cursorPosition), textX, textY, color);
         }
 
-        if (!this.isTextTruncated && !this.suggestion.isEmpty()) {
-            int suggestionDrawX = this.getText().isEmpty() ? currentDrawX : currentDrawX - 1;
-            String suggestion = this.fontRenderer.trimStringToWidth(this.suggestion, textStartX + this.getWidth() - suggestionDrawX);
-            this.fontRenderer.drawStringWithShadow(suggestion, suggestionDrawX, textStartY, 0x808080);
+        if (!this.hint.isEmpty() && visibleText.isEmpty() && !this.isFocused()) {
+            this.field_146211_a.drawStringWithShadow(this.hint, textX, textY, color);
         }
 
-        if (shouldDrawCursor) {
-            if (this.isTextTruncated) {
-                Gui.drawRect(cursorDrawX, textStartY - 1, cursorDrawX + 1, textStartY + 1 + this.fontRenderer.FONT_HEIGHT, 0xFFCFCFD0);
+        if (!textTruncated && !this.suggestion.isEmpty()) {
+            int suggestionDrawX = this.getText().isEmpty() ? cursorX : cursorX - 1;
+            String suggestion = this.field_146211_a.trimStringToWidth(this.suggestion, textStartX + this.getWidth() - suggestionDrawX);
+            this.field_146211_a.drawStringWithShadow(suggestion, suggestionDrawX, textY, 0x808080);
+        }
+
+        if (drawCursor) {
+            if (textTruncated) {
+                drawRect(cursorX, textY - 1, cursorX + 1, textY + 1 + this.field_146211_a.FONT_HEIGHT, 0xFFCFCFD0);
             } else {
-                this.fontRenderer.drawStringWithShadow("_", cursorDrawX, textStartY, textColor);
+                this.field_146211_a.drawStringWithShadow("_", cursorX, textY, color);
             }
         }
 
-        if (selectionEndRelative != cursorPosRelative) {
-            int selectionEndX = textStartX + this.fontRenderer.getStringWidth(visibleText.substring(0, selectionEndRelative));
-            this.drawCursorVertical(cursorDrawX, textStartY - 1, selectionEndX - 1, textStartY + 1 + this.fontRenderer.FONT_HEIGHT);
+        if (selectionEndRel != cursorPosRel) {
+            int selectionEndX = textStartX + this.field_146211_a.getStringWidth(visibleText.substring(0, selectionEndRel));
+            this.drawCursorVertical(cursorX, textY - 1, selectionEndX - 1, textY + 1 + this.field_146211_a.FONT_HEIGHT);
         }
-    }
-
-    // Formatter
-    public void setFormatter(@Nullable BiFunction<String, Integer, String> pFormatter) {
-        this.formatter = pFormatter;
     }
 
     private String formatText(String text, int cursorPos) {
         return this.formatter != null ? this.formatter.apply(text, cursorPos) : text;
     }
 
-    // Responder
-    public void setResponder(@Nullable Consumer<String> pResponder) {
-        this.responder = pResponder;
+    public void setSuggestion(String suggestion) {
+        this.suggestion = suggestion;
+    }
+
+    public void setHint(String hint) {
+        this.hint = hint;
+    }
+
+    public void setResponder(@Nullable Consumer<String> responder) {
+        this.responder = responder;
+    }
+
+    public void setFormatter(@Nullable BiFunction<String, Integer, String> formatter) {
+        this.formatter = formatter;
+    }
+
+    protected void setResponderEntryValue(String text) {
+        if (this.responder != null) this.responder.accept(text);
     }
 
     @Override
     public void writeText(String textToWrite) {
-        String previousText = this.getText();
+        String preText = this.getText();
         super.writeText(textToWrite);
-        if (!Objects.equals(this.getText(), previousText)) {
-            this.setResponderEntryValue(this.getText());
-        }
+        if (!preText.equals(this.getText())) this.setResponderEntryValue(this.getText());
     }
 
     @Override
     public void deleteFromCursor(int num) {
-        String previousText = this.getText();
+        String preText = this.getText();
         super.deleteFromCursor(num);
-        if (!Objects.equals(this.getText(), previousText)) {
-            this.setResponderEntryValue(this.getText());
-        }
+        if (!preText.equals(this.getText())) this.setResponderEntryValue(this.getText());
     }
 
     @Override
-    public void setText(@Nonnull String textIn) {
-        String previousText = this.getText();
-        super.setText(textIn);
-        if (!Objects.equals(this.getText(), previousText)) {
-            this.setResponderEntryValue(this.getText());
-        }
+    public void setText(String text) {
+        String preText = this.getText();
+        super.setText(text);
+        if (!preText.equals(this.getText())) this.setResponderEntryValue(this.getText());
     }
 
     @Override
     public void setMaxStringLength(int length) {
-        String previousText = this.getText();
+        String preText = this.getText();
         super.setMaxStringLength(length);
-        if (!Objects.equals(this.getText(), previousText)) {
-            this.setResponderEntryValue(this.getText());
-        }
-    }
-
-    // Call consumer responder
-    public void setResponderEntryValue(@Nonnull String textIn) {
-        if (this.responder != null) {
-            this.responder.accept(textIn);
-        }
-    }
-
-    // Suggestion
-    public void setSuggestion(@Nonnull String suggestion) {
-        this.suggestion = suggestion;
-    }
-
-    @Nonnull
-    public String getSuggestion() {
-        return this.suggestion;
-    }
-
-    public boolean isTextTruncated() {
-        return this.isTextTruncated;
+        if (!preText.equals(this.getText())) this.setResponderEntryValue(this.getText());
     }
 }

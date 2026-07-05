@@ -1,6 +1,6 @@
 package com.cleanroommc.catalogue.client.screen.widget;
 
-import com.cleanroommc.catalogue.client.ClientHelper;
+import com.cleanroommc.catalogue.client.RenderUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiListExtended;
 import net.minecraft.client.renderer.OpenGlHelper;
@@ -14,9 +14,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-public class CatalogueListExtended<E extends CatalogueListExtended.IListEntry> extends GuiListExtended {
+public class CatalogueListExtended<E extends GuiListExtended.IGuiListEntry> extends GuiListExtended {
     public boolean visible = true;
-    private boolean scrollBarVisible;
+    protected boolean scrollBarVisible;
+    private boolean scrolling;
 
     public CatalogueListExtended(Minecraft mc, int width, int height, int top, int bottom, int slotHeight) {
         super(mc, width, height, top, bottom, slotHeight);
@@ -30,25 +31,26 @@ public class CatalogueListExtended<E extends CatalogueListExtended.IListEntry> e
         this.mouseX = mouseX;
         this.mouseY = mouseY;
 
-        this.bindAmountScrolled();
-        int maxScroll = this.getMaxScroll();
-        this.scrollBarVisible = maxScroll > 0 && this.getContentHeight() != 0;
+        // Customized background. Empty by default.
+        this.drawBackground();
 
-        ClientHelper.scissor(this.left, this.top, this.width, this.bottom - this.top);
+        this.bindAmountScrolled();
+        int maxScroll = this.func_148135_f();
+        this.scrollBarVisible = this.shouldShowScrollBar();
+
+        RenderUtils.scissor(this.left, this.top, this.width, this.bottom - this.top);
 
         GL11.glDisable(GL11.GL_LIGHTING);
         GL11.glDisable(GL11.GL_FOG);
-        Tessellator tessellator = Tessellator.instance;
+        Tessellator tess = Tessellator.instance;
 
         // Shadowed dirt background. Scroll with the entries.
-        this.drawContainerBackground(tessellator);
+        this.drawContainerBackground(tess);
 
         // Customized header. Empty by default
-        if (this.hasListHeader) {
-            this.drawListHeader(this.getListLeft(), this.getListTop(), tessellator);
-        }
+        if (this.hasListHeader) this.drawListHeader(this.left + this.getListLeft(), this.getListTop(), tess);
 
-        this.renderListItems(mouseX, mouseY, partialTicks);
+        this.renderListItems(mouseX, mouseY, partialTicks, tess);
 
         GL11.glDisable(GL11.GL_DEPTH_TEST);
         GL11.glEnable(GL11.GL_BLEND);
@@ -58,9 +60,10 @@ public class CatalogueListExtended<E extends CatalogueListExtended.IListEntry> e
         GL11.glDisable(GL11.GL_TEXTURE_2D);
 
         // Scroll Bar
-        if (this.scrollBarVisible) {
-            this.drawScrollBar(maxScroll);
-        }
+        if (this.scrollBarVisible) this.drawScrollBar(maxScroll, tess);
+
+        // Customized decorations. Empty by default.
+        this.func_148142_b(mouseX, mouseY);
 
         GL11.glEnable(GL11.GL_TEXTURE_2D);
         GL11.glShadeModel(GL11.GL_FLAT);
@@ -69,201 +72,237 @@ public class CatalogueListExtended<E extends CatalogueListExtended.IListEntry> e
         GL11.glDisable(GL11.GL_SCISSOR_TEST);
     }
 
-    protected void drawScrollBar(int maxScroll) {
-        Tessellator tessellator = Tessellator.instance;
+    protected void drawScrollBar(int maxScroll, Tessellator tess) {
+        int scrollThumbHeight = this.getScrollThumbHeight();
+        if (scrollThumbHeight <= 0) return;
 
-        int scrollBarLeft = this.getScrollBarX();
-        int scrollBarRight = scrollBarLeft + 6;
+        int viewHeight = this.bottom - this.top;
+        int scrollThumbTop = (int) this.amountScrolled * (viewHeight - scrollThumbHeight) / maxScroll + this.top;
+        scrollThumbTop = MathHelper.clamp_int(scrollThumbTop, this.top, this.bottom - scrollThumbHeight);
 
-        int scrollThumbHeight = (this.bottom - this.top) * (this.bottom - this.top) / this.getContentHeight();
-        scrollThumbHeight = MathHelper.clamp_int(scrollThumbHeight, 32, this.bottom - this.top - 8);
-        int scrollThumbTop = (int) this.amountScrolled * (this.bottom - this.top - scrollThumbHeight) / maxScroll + this.top;
-        scrollThumbTop = Math.max(scrollThumbTop, this.top);
+        int scrollBarLeft = this.getScrollBarLeft();
+        int scrollBarRight = this.getScrollBarRight();
+        tess.startDrawingQuads();
 
         // Background
-        tessellator.startDrawingQuads();
-        tessellator.setColorRGBA_I(0, 255);
-        tessellator.addVertexWithUV(scrollBarLeft, this.bottom, 0.0D, 0.0D, 1.0D);
-        tessellator.addVertexWithUV(scrollBarRight, this.bottom, 0.0D, 1.0D, 1.0D);
-        tessellator.addVertexWithUV(scrollBarRight, this.top, 0.0D, 1.0D, 0.0D);
-        tessellator.addVertexWithUV(scrollBarLeft, this.top, 0.0D, 0.0D, 0.0D);
-        tessellator.draw();
+        tess.setColorRGBA(0, 0, 0, 255);
+        tess.addVertexWithUV(scrollBarLeft, this.bottom, 0, 0, 1);
+        tess.setColorRGBA(0, 0, 0, 255);
+        tess.addVertexWithUV(scrollBarRight, this.bottom, 0, 1, 1);
+        tess.setColorRGBA(0, 0, 0, 255);
+        tess.addVertexWithUV(scrollBarRight, this.top, 0, 1, 0);
+        tess.setColorRGBA(0, 0, 0, 255);
+        tess.addVertexWithUV(scrollBarLeft, this.top, 0, 0, 0);
 
         // Main
-        tessellator.startDrawingQuads();
-        tessellator.setColorRGBA_I(8421504, 255);
-        tessellator.addVertexWithUV(scrollBarLeft, scrollThumbTop + scrollThumbHeight, 0.0D, 0.0D, 1.0D);
-        tessellator.addVertexWithUV(scrollBarRight, scrollThumbTop + scrollThumbHeight, 0.0D, 1.0D, 1.0D);
-        tessellator.addVertexWithUV(scrollBarRight, scrollThumbTop, 0.0D, 1.0D, 0.0D);
-        tessellator.addVertexWithUV(scrollBarLeft, scrollThumbTop, 0.0D, 0.0D, 0.0D);
-        tessellator.draw();
+        tess.setColorRGBA(128, 128, 128, 255);
+        tess.addVertexWithUV(scrollBarLeft, scrollThumbTop + scrollThumbHeight, 0, 0, 1);
+        tess.setColorRGBA(128, 128, 128, 255);
+        tess.addVertexWithUV(scrollBarRight, scrollThumbTop + scrollThumbHeight, 0, 1, 1);
+        tess.setColorRGBA(128, 128, 128, 255);
+        tess.addVertexWithUV(scrollBarRight, scrollThumbTop, 0, 1, 0);
+        tess.setColorRGBA(128, 128, 128, 255);
+        tess.addVertexWithUV(scrollBarLeft, scrollThumbTop, 0, 0, 0);
 
         // Border
-        tessellator.startDrawingQuads();
-        tessellator.setColorRGBA_I(12632256, 255);
-        tessellator.addVertexWithUV(scrollBarLeft, scrollThumbTop + scrollThumbHeight - 1, 0.0D, 0.0D, 1.0D);
-        tessellator.addVertexWithUV(scrollBarRight - 1, scrollThumbTop + scrollThumbHeight - 1, 0.0D, 1.0D, 1.0D);
-        tessellator.addVertexWithUV(scrollBarRight - 1, scrollThumbTop, 0.0D, 1.0D, 0.0D);
-        tessellator.addVertexWithUV(scrollBarLeft, scrollThumbTop, 0.0D, 0.0D, 0.0D);
-        tessellator.draw();
+        tess.setColorRGBA(192, 192, 192, 255);
+        tess.addVertexWithUV(scrollBarLeft, scrollThumbTop + scrollThumbHeight - 1, 0, 0, 1);
+        tess.setColorRGBA(192, 192, 192, 255);
+        tess.addVertexWithUV(scrollBarRight - 1, scrollThumbTop + scrollThumbHeight - 1, 0, 1, 1);
+        tess.setColorRGBA(192, 192, 192, 255);
+        tess.addVertexWithUV(scrollBarRight - 1, scrollThumbTop, 0, 1, 0);
+        tess.setColorRGBA(192, 192, 192, 255);
+        tess.addVertexWithUV(scrollBarLeft, scrollThumbTop, 0, 0, 0);
+
+        tess.draw();
     }
 
-    protected void renderListItems(int mouseX, int mouseY, float partialTicks) {
+    protected void renderListItems(int mouseX, int mouseY, float partialTicks, Tessellator tess) {
         for (int index = 0; index < this.getSize(); ++index) {
-            int rowLeft = this.getListLeft();
-            int rowRight = this.getListRight();
+            int rowLeft = this.left + this.getListLeft();
+            int rowRight = this.left + this.getListRight();
             int rowTop = this.getRowTop(index);
             int rowBottom = this.getRowBottom(index) - 4;
 
             if (rowTop + this.slotHeight >= this.top && rowTop <= this.bottom) {
-                this.renderItem(index, rowLeft, rowTop, rowRight, rowBottom, mouseX, mouseY, partialTicks);
+                this.renderItem(index, rowLeft, rowTop, rowRight, rowBottom, mouseX, mouseY, partialTicks, tess);
             }
         }
     }
 
-    protected void renderItem(int slotIndex, int rowLeft, int rowTop, int rowRight, int rowBottom, int mouseX, int mouseY, float partialTicks) {
-        this.drawSlot(slotIndex, rowLeft, rowTop, rowBottom - rowTop, Tessellator.instance, mouseX, mouseY);
+    protected void renderItem(int slotIndex, int rowLeft, int rowTop, int rowRight, int rowBottom, int mouseX, int mouseY, float partialTicks, Tessellator tess) {
+        this.drawSlot(slotIndex, rowLeft, rowTop, rowBottom - rowTop, tess, mouseX, mouseY);
     }
 
-    @Deprecated
-    @Override
-    protected void drawSelectionBox(int contentLeft, int contentTop, int mouseXIn, int mouseYIn) {
-    }
-
-    // Backport from 1.12.2. Providing a better scroll experience.
     public void handleMouseInput() {
-        if (this.isMouseYWithinSlotBounds(this.mouseY)) {
+        if (!this.visible) {
+            this.initialClickY = -1;
+            this.scrolling = false;
+            return;
+        }
 
-            if (Mouse.getEventButton() == 0 && Mouse.getEventButtonState() && this.mouseY >= this.top && this.mouseY <= this.bottom) {
-                int listLeft = this.getListLeft();
-                int listRight = this.getListRight();
+        boolean hasScrollBar = this.shouldShowScrollBar();
+        boolean mouseOverList = this.isMouseWithinListBounds(this.mouseX, this.mouseY);
+
+        if (mouseOverList) {
+            if (Mouse.getEventButton() == 0 && Mouse.getEventButtonState()) {
+                int listLeft = this.left + this.getListLeft();
+                int listRight = this.left + this.getListRight();
+                boolean beforeScrollBar = this.isMouseBeforeScrollBar(hasScrollBar, this.mouseX);
 
                 int relativeY = this.mouseY - this.top - this.headerPadding + (int) this.amountScrolled - 4;
                 int slotIndex = relativeY / this.slotHeight;
 
-                if (slotIndex < this.getSize() && this.mouseX >= listLeft && this.mouseX <= listRight && slotIndex >= 0 && relativeY >= 0) {
+                if (beforeScrollBar && slotIndex < this.getSize() && this.mouseX >= listLeft && this.mouseX <= listRight && slotIndex >= 0 && relativeY >= 0) {
                     this.elementClicked(slotIndex, false, this.mouseX, this.mouseY);
                     this.selectedElement = slotIndex;
-                } else if (this.mouseX >= listLeft && this.mouseX <= listRight && relativeY < 0) {
-                    this.clickedHeader(this.mouseX - listLeft, this.mouseY - this.top + (int) this.amountScrolled - 4);
+                } else if (beforeScrollBar && this.mouseX >= listLeft && this.mouseX <= listRight && relativeY < 0) {
+                    this.func_148132_a(this.mouseX - listLeft, this.mouseY - this.top + (int) this.amountScrolled - 4);
                 }
             }
+        }
 
-            if (Mouse.isButtonDown(0) && this.getEnabled()) {
-                if (this.initialClickY == -1) {
-                    boolean clickedOnList = true;
+        if (Mouse.isButtonDown(0) && this.func_148125_i()) {
+            if (this.initialClickY == -1) {
+                if (mouseOverList) {
+                    boolean clickedOnHeader = false;
 
-                    if (this.mouseY >= this.top && this.mouseY <= this.bottom) {
-                        int listLeft = this.getListLeft();
-                        int listRight = this.getListRight();
-                        int relativeY = this.mouseY - this.top - this.headerPadding + (int) this.amountScrolled - 4;
-                        int slotIndex = relativeY / this.slotHeight;
+                    int listLeft = this.left + this.getListLeft();
+                    int listRight = this.left + this.getListRight();
+                    int relativeY = this.mouseY - this.top - this.headerPadding + (int) this.amountScrolled - 4;
+                    int slotIndex = relativeY / this.slotHeight;
+                    boolean beforeScrollBar = this.isMouseBeforeScrollBar(hasScrollBar, this.mouseX);
 
-                        if (slotIndex < this.getSize() && this.mouseX >= listLeft && this.mouseX <= listRight && slotIndex >= 0 && relativeY >= 0) {
-                            boolean isDoubleClick = slotIndex == this.selectedElement && Minecraft.getSystemTime() - this.lastClicked < 250L;
-                            this.elementClicked(slotIndex, isDoubleClick, this.mouseX, this.mouseY);
-                            this.selectedElement = slotIndex;
-                            this.lastClicked = Minecraft.getSystemTime();
-                        } else if (this.mouseX >= listLeft && this.mouseX <= listRight && relativeY < 0) {
-                            this.clickedHeader(this.mouseX - listLeft, this.mouseY - this.top + (int) this.amountScrolled - 4);
-                            clickedOnList = false;
-                        }
+                    if (beforeScrollBar && slotIndex < this.getSize() && this.mouseX >= listLeft && this.mouseX <= listRight && slotIndex >= 0 && relativeY >= 0) {
+                        boolean isDoubleClick = slotIndex == this.selectedElement && Minecraft.getSystemTime() - this.lastClicked < 250L;
+                        this.elementClicked(slotIndex, isDoubleClick, this.mouseX, this.mouseY);
+                        this.selectedElement = slotIndex;
+                        this.lastClicked = Minecraft.getSystemTime();
+                    } else if (beforeScrollBar && this.mouseX >= listLeft && this.mouseX <= listRight && relativeY < 0) {
+                        this.func_148132_a(this.mouseX - listLeft, this.mouseY - this.top + (int) this.amountScrolled - 4);
+                        clickedOnHeader = true;
+                    }
 
-                        int scrollBarLeft = this.getScrollBarX();
-                        int scrollBarRight = scrollBarLeft + 6;
-
-                        if (this.mouseX >= scrollBarLeft && this.mouseX <= scrollBarRight) {
-                            this.scrollMultiplier = -1.0F;
-
-                            int maxScroll = Math.max(1, this.getMaxScroll());
-
-                            int viewHeight = this.bottom - this.top;
-                            int scrollBarHeight = (int) ((float) (viewHeight * viewHeight) / (float) this.getContentHeight());
-
-                            scrollBarHeight = MathHelper.clamp_int(scrollBarHeight, 32, viewHeight - 8);
-
-                            this.scrollMultiplier /= (float) (viewHeight - scrollBarHeight) / (float) maxScroll;
-                        } else {
-                            this.scrollMultiplier = 1.0F;
-                        }
-
-                        if (clickedOnList) {
-                            this.initialClickY = this.mouseY;
-                        } else {
-                            this.initialClickY = -2;
-                        }
+                    this.scrolling = !clickedOnHeader && this.isMouseOverScrollBar(hasScrollBar, this.mouseX);
+                    if (this.scrolling) {
+                        this.initialClickY = this.mouseY;
                     } else {
                         this.initialClickY = -2;
                     }
-                } else if (this.initialClickY >= 0) {
-                    this.amountScrolled -= (this.mouseY - this.initialClickY) * this.scrollMultiplier;
-                    this.initialClickY = this.mouseY;
+                } else {
+                    this.scrolling = false;
+                    this.initialClickY = -2;
                 }
+            } else if (this.initialClickY >= 0 && this.scrolling) {
+                if (this.mouseY < this.top) {
+                    this.setAmountScrolled(0.0F);
+                } else if (this.mouseY > this.bottom) {
+                    this.setAmountScrolled(this.func_148135_f());
+                } else {
+                    int maxScroll = Math.max(1, this.func_148135_f());
+                    int viewHeight = this.bottom - this.top;
+                    int scrollThumbHeight = this.getScrollThumbHeight();
+                    int scrollRange = viewHeight - scrollThumbHeight;
+
+                    this.scrollMultiplier = scrollRange > 0 ? Math.max(1.0F, (float) maxScroll / (float) scrollRange) : 0.0F;
+                    this.setAmountScrolled(this.amountScrolled + (this.mouseY - this.initialClickY) * this.scrollMultiplier);
+                }
+
+                this.initialClickY = this.mouseY;
             } else {
-                this.initialClickY = -1;
+                this.initialClickY = -2;
             }
+        } else {
+            this.initialClickY = -1;
+            this.scrolling = false;
+        }
 
-            int dWheel = Mouse.getEventDWheel();
+        int wheelDelta = Mouse.getEventDWheel();
 
-            if (dWheel != 0) {
-                dWheel = dWheel > 0 ? -1 : 1;
-                this.amountScrolled += (float) (dWheel * this.slotHeight / 2);
-            }
+        if (wheelDelta != 0 && mouseOverList) {
+            wheelDelta = wheelDelta > 0 ? -1 : 1;
+            this.setAmountScrolled(this.amountScrolled + (float) (wheelDelta * this.slotHeight / 2));
         }
     }
 
-    public boolean mouseClicked(int mouseX, int mouseY, int mouseEvent) {
-        if (this.isMouseYWithinSlotBounds(mouseY)) {
-            int slotIndex = this.getSlotIndexFromScreenCoords(mouseX, mouseY);
-            if (slotIndex >= 0) {
-                int j = this.left + this.getListLeft();
-                int k = this.top + 4 - this.getAmountScrolled() + slotIndex * this.slotHeight + this.headerPadding;
-                int relativeX = mouseX - j;
-                int relativeY = mouseY - k;
-                if (this.getListEntry(slotIndex).mousePressed(slotIndex, mouseX, mouseY, mouseEvent, relativeX, relativeY)) {
-                    this.setEnabled(false);
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    public boolean mouseReleased(int mouseX, int mouseY, int mouseEvent) {
-        for (int slotIndex = 0; slotIndex < this.getSize(); ++slotIndex) {
-            int j = this.left + this.getListLeft();
-            int k = this.top + 4 - this.getAmountScrolled() + slotIndex * this.slotHeight + this.headerPadding;
-            int relativeX = mouseX - j;
-            int relativeY = mouseY - k;
-            this.getListEntry(slotIndex).mouseReleased(slotIndex, mouseX, mouseY, mouseEvent, relativeX, relativeY);
-        }
-        this.setEnabled(true);
-        return false;
-    }
-
-    public int getSlotIndexFromScreenCoords(int mouseX, int mouseY) {
-        int i = this.getListWidth() / 2;
-        int j = this.left + this.width / 2;
-        int k = j - i;
-        int l = j + i;
-        int i1 = MathHelper.floor_float(mouseY - this.top) - this.headerPadding + this.getAmountScrolled() - 4;
-        int j1 = i1 / this.slotHeight;
-        return mouseX < this.getScrollBarX() && mouseX >= k && mouseX <= l && j1 >= 0 && i1 >= 0 && j1 < this.getSize() ? j1 : -1;
-    }
-
-    // Fix hover check bug in 1.7.10
+    // mouseClicked
     @Override
-    protected void drawSlot(int slotIndex, int xPos, int yPos, int heightIn, Tessellator tessellator, int mouseXIn, int mouseYIn) {
-        this.getListEntry(slotIndex).drawEntry(slotIndex, xPos, yPos, this.getListWidth(), heightIn, tessellator, mouseXIn, mouseYIn, this.isMouseYWithinSlotBounds(mouseYIn) && this.getSlotIndexFromScreenCoords(mouseXIn, mouseYIn) == slotIndex);
+    public boolean func_148179_a(int mouseX, int mouseY, int mouseButton) {
+        if (!this.visible) return false;
+
+        int slotIndex = this.func_148124_c(mouseX, mouseY);
+        if (slotIndex >= 0) {
+            int rowLeft = this.left + this.getListLeft();
+            int rowTop = this.getRowTop(slotIndex);
+            int relativeX = mouseX - rowLeft;
+            int relativeY = mouseY - rowTop;
+            if (this.getListEntry(slotIndex).mousePressed(slotIndex, mouseX, mouseY, mouseButton, relativeX, relativeY)) {
+                this.func_148143_b(false);
+                return true;
+            }
+        }
+        return false;
     }
 
-    // Fix mouse X pos bug in 1.7.10
-    public boolean isMouseYWithinSlotBounds(int mouseY) {
-        return super.func_148141_e(mouseY) && this.mouseX >= this.left && this.mouseX <= this.right;
+    // mouseReleased
+    @Override
+    public boolean func_148181_b(int mouseX, int mouseY, int mouseButton) {
+        if (!this.visible) {
+            this.func_148143_b(true);
+            return false;
+        }
+
+        for (int slotIndex = 0; slotIndex < this.getSize(); ++slotIndex) {
+            int rowLeft = this.left + this.getListLeft();
+            int rowTop = this.getRowTop(slotIndex);
+            int relativeX = mouseX - rowLeft;
+            int relativeY = mouseY - rowTop;
+            this.getListEntry(slotIndex).mouseReleased(slotIndex, mouseX, mouseY, mouseButton, relativeX, relativeY);
+        }
+        this.func_148143_b(true);
+        return false;
+    }
+
+    // getSlotIndexFromScreenCoords
+    @Override
+    public int func_148124_c(int mouseX, int mouseY) {
+        if (!this.isMouseWithinListBounds(mouseX, mouseY)) return -1;
+
+        boolean hasScrollBar = this.shouldShowScrollBar();
+        int listLeft = this.left + this.getListLeft();
+        int listRight = this.left + this.getListRight();
+        int relativeY = MathHelper.floor_float(mouseY - this.top) - this.headerPadding + this.getAmountScrolled() - 4;
+        int slotIndex = relativeY / this.slotHeight;
+        boolean beforeScrollBar = this.isMouseBeforeScrollBar(hasScrollBar, mouseX);
+        return beforeScrollBar && mouseX >= listLeft && mouseX <= listRight && slotIndex >= 0 && relativeY >= 0 && slotIndex < this.getSize() ? slotIndex : -1;
+    }
+
+    public boolean isMouseWithinListBounds(int mouseX, int mouseY) {
+        return mouseX >= this.left && mouseX <= this.left + this.width && this.func_148141_e(mouseY);
+    }
+
+    private boolean shouldShowScrollBar() {
+        return this.func_148135_f() > 0 && this.getContentHeight() > 0 && this.bottom > this.top;
+    }
+
+    private boolean isMouseOverScrollBar(boolean hasScrollBar, int mouseX) {
+        return hasScrollBar && mouseX >= this.getScrollBarLeft() && mouseX < this.getScrollBarRight();
+    }
+
+    private boolean isMouseBeforeScrollBar(boolean hasScrollBar, int mouseX) {
+        return !hasScrollBar || mouseX < this.getScrollBarLeft();
+    }
+
+    private int getScrollBarLeft() {
+        return this.left + this.getScrollBarX();
+    }
+
+    private int getScrollBarRight() {
+        return this.getScrollBarLeft() + 6;
     }
 
     public void setClampedAmountScrolled(float scroll) {
-        this.amountScrolled = MathHelper.clamp_float(scroll, 0.0F, this.getMaxScroll());
+        this.amountScrolled = MathHelper.clamp_float(scroll, 0.0F, this.func_148135_f());
     }
 
     public void setAmountScrolled(float scroll) {
@@ -284,26 +323,64 @@ public class CatalogueListExtended<E extends CatalogueListExtended.IListEntry> e
         this.bottom = this.top + height;
     }
 
-    protected boolean isScrollBarVisible() {
-        return this.scrollBarVisible;
+    protected int getScrollThumbHeight() {
+        int viewHeight = this.bottom - this.top;
+        int contentHeight = this.getContentHeight();
+        if (viewHeight <= 0 || contentHeight <= 0) return 0;
+
+        int thumbHeight = viewHeight * viewHeight / contentHeight;
+        int maxThumbHeight = Math.max(1, viewHeight - 8);
+        int minThumbHeight = Math.min(32, maxThumbHeight);
+        return MathHelper.clamp_int(thumbHeight, minThumbHeight, maxThumbHeight);
     }
 
+    /**
+     * Returns the scrollbar x-coordinate relative to this list's left bound.
+     */
+    @Override
+    protected int getScrollBarX() {
+        return super.getScrollBarX();
+    }
+
+    /**
+     * Returns the row content width in screen pixels. This is a size, not an x-coordinate.
+     */
+    @Override
+    public int getListWidth() {
+        return super.getListWidth();
+    }
+
+    /**
+     * Returns the row content left edge relative to this list's left bound.
+     */
     protected int getListLeft() {
         return this.width / 2 - this.getListWidth() / 2 + 2;
     }
 
+    /**
+     * Returns the row content right edge relative to this list's left bound.
+     */
     protected int getListRight() {
         return this.getListLeft() + this.getListWidth();
     }
 
+    /**
+     * Returns the absolute screen y-coordinate where list content starts after scroll offset.
+     */
     protected int getListTop() {
         return this.top + 4 - (int) this.amountScrolled;
     }
 
+    /**
+     * Returns the absolute screen y-coordinate of a row's top edge.
+     */
     protected int getRowTop(int slotIndex) {
         return this.top + 4 - (int) this.amountScrolled + slotIndex * this.slotHeight + this.headerPadding;
     }
 
+    /**
+     * Returns the absolute screen y-coordinate of a row's bottom edge.
+     */
     protected int getRowBottom(int slotIndex) {
         return this.getRowTop(slotIndex) + this.slotHeight;
     }
@@ -329,12 +406,12 @@ public class CatalogueListExtended<E extends CatalogueListExtended.IListEntry> e
         return this.children().size();
     }
 
-    public void centerScrollOn(E pEntry) {
-        this.setAmountScrolled((float) (this.children().indexOf(pEntry) * this.slotHeight + this.slotHeight / 2 - (this.bottom - this.top) / 2));
+    public void centerScrollOn(E entry) {
+        this.setAmountScrolled((float) (this.children().indexOf(entry) * this.slotHeight + this.slotHeight / 2 - (this.bottom - this.top) / 2));
     }
 
-    public void addEntry(E pEntry) {
-        this.children().add(pEntry);
+    public void addEntry(E entry) {
+        this.children().add(entry);
     }
 
     public void clearEntries() {
@@ -346,7 +423,7 @@ public class CatalogueListExtended<E extends CatalogueListExtended.IListEntry> e
         this.children().addAll(entries);
     }
 
-    public void removeEntries(@Nonnull List<E> entries) {
+    public void removeEntries(List<E> entries) {
         entries.forEach(this::removeEntry);
     }
 
@@ -355,11 +432,15 @@ public class CatalogueListExtended<E extends CatalogueListExtended.IListEntry> e
     }
 
     public void clearEntriesExcept(E entry) {
-        this.children.removeIf((e) -> e != entry);
+        this.children.removeIf(candidate -> candidate != entry);
+    }
+
+    @Deprecated
+    @Override
+    protected final void drawSelectionBox(int contentLeft, int contentTop, int mouseX, int mouseY) {
     }
 
     public interface IListEntry extends IGuiListEntry {
-
         /**
          * Called when the mouse is clicked within this entry.
          *
@@ -367,11 +448,11 @@ public class CatalogueListExtended<E extends CatalogueListExtended.IListEntry> e
          * @param mouseY    the current mouse y position
          * @param relativeX the current x position of the mouse relative to the top-left corner of the entry
          * @param relativeY the current y position of the mouse relative to the top-left corner of the entry
-         * @return true means that something within this entry was clicked and the list should not be dragged.
+         * @return {@code true} means that something within this entry was clicked and the list should not be dragged.
          */
         @Override
         default boolean mousePressed(int slotIndex, int mouseX, int mouseY, int mouseButton, int relativeX, int relativeY) {
-            return true;
+            return false;
         }
 
         /**
@@ -385,97 +466,5 @@ public class CatalogueListExtended<E extends CatalogueListExtended.IListEntry> e
         @Override
         default void mouseReleased(int slotIndex, int mouseX, int mouseY, int mouseButton, int relativeX, int relativeY) {
         }
-    }
-
-    /*
-    Simply rename some srg-named methods.
-     */
-
-    /**
-     * @deprecated Use {@link #isMouseYWithinSlotBounds(int)}.
-     */
-    @Deprecated
-    @Override
-    public boolean func_148141_e(int mouseY) {
-        return this.isMouseYWithinSlotBounds(mouseY);
-    }
-
-    /**
-     * @deprecated Use {@link #getSlotIndexFromScreenCoords(int, int)}.
-     */
-    @Deprecated
-    @Override
-    public int func_148124_c(int mouseX, int mouseY) {
-        return this.getSlotIndexFromScreenCoords(mouseX, mouseY);
-    }
-
-    /**
-     * @deprecated Use {@link #mouseReleased(int, int, int)}.
-     */
-    @Deprecated
-    @Override
-    public boolean func_148181_b(int x, int y, int mouseEvent) {
-        return this.mouseReleased(x, y, mouseEvent);
-    }
-
-    /**
-     * @deprecated Use {@link #mouseClicked(int, int, int)}.
-     */
-    @Deprecated
-    @Override
-    public boolean func_148179_a(int mouseX, int mouseY, int mouseEvent) {
-        return this.mouseClicked(mouseX, mouseY, mouseEvent);
-    }
-
-    /**
-     * @deprecated Use {@link #setEnabled(boolean)}.
-     */
-    @Deprecated
-    @Override
-    public void func_148143_b(boolean enabledIn) {
-        this.setEnabled(enabledIn);
-    }
-
-    public void setEnabled(boolean enabledIn) {
-        super.func_148143_b(enabledIn);
-    }
-
-    /**
-     * @deprecated Use {@link #getEnabled()}.
-     */
-    @Deprecated
-    @Override
-    public boolean func_148125_i() {
-        return this.getEnabled();
-    }
-
-    public boolean getEnabled() {
-        return super.func_148125_i();
-    }
-
-    /**
-     * @deprecated Use {@link #getMaxScroll()}.
-     */
-    @Deprecated
-    @Override
-    public int func_148135_f() {
-        return this.getMaxScroll();
-    }
-
-    public int getMaxScroll() {
-        return super.func_148135_f();
-    }
-
-    /**
-     * @deprecated Use {@link #clickedHeader(int, int)}.
-     */
-    @Deprecated
-    @Override
-    protected void func_148132_a(int mouseX, int mouseY) {
-        this.clickedHeader(mouseX, mouseY);
-    }
-
-    protected void clickedHeader(int mouseX, int mouseY) {
-        super.func_148132_a(mouseX, mouseY);
     }
 }

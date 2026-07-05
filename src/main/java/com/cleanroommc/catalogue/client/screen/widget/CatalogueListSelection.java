@@ -2,15 +2,16 @@ package com.cleanroommc.catalogue.client.screen.widget;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
+import net.minecraft.client.gui.GuiListExtended;
+import net.minecraft.client.renderer.Tessellator;
 
 import javax.annotation.Nullable;
-import java.util.Objects;
 
-public class CatalogueListSelection<E extends CatalogueListExtended.IListEntry> extends CatalogueListExtended<E> {
+public class CatalogueListSelection<E extends GuiListExtended.IGuiListEntry> extends CatalogueListExtended<E> {
     private @Nullable E selected;
 
-    public CatalogueListSelection(Minecraft mcIn, int widthIn, int heightIn, int topIn, int bottomIn, int slotHeightIn) {
-        super(mcIn, widthIn, heightIn, topIn, bottomIn, slotHeightIn);
+    public CatalogueListSelection(Minecraft mc, int width, int height, int top, int bottom, int slotHeight) {
+        super(mc, width, height, top, bottom, slotHeight);
     }
 
     @Override
@@ -21,7 +22,7 @@ public class CatalogueListSelection<E extends CatalogueListExtended.IListEntry> 
 
     @Override
     protected boolean isSelected(int slotIndex) {
-        return Objects.equals(this.getSelected(), this.getListEntry(slotIndex));
+        return this.getSelected() == this.getListEntry(slotIndex);
     }
 
     @Nullable
@@ -49,11 +50,11 @@ public class CatalogueListSelection<E extends CatalogueListExtended.IListEntry> 
     }
 
     @Override
-    protected void renderItem(int slotIndex, int rowLeft, int rowTop, int rowRight, int rowBottom, int mouseX, int mouseY, float partialTicks) {
+    protected void renderItem(int slotIndex, int rowLeft, int rowTop, int rowRight, int rowBottom, int mouseX, int mouseY, float partialTicks, Tessellator tess) {
         if (this.showSelectionBox && this.isSelected(slotIndex)) {
             this.renderSelection(rowLeft, rowTop, rowRight, rowBottom);
         }
-        super.renderItem(slotIndex, rowLeft, rowTop, rowRight, rowBottom, mouseX, mouseY, partialTicks);
+        super.renderItem(slotIndex, rowLeft, rowTop, rowRight, rowBottom, mouseX, mouseY, partialTicks, tess);
     }
 
     @SuppressWarnings("SameParameterValue")
