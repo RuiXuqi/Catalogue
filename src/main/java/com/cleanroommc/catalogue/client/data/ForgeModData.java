@@ -109,18 +109,21 @@ public class ForgeModData implements IModData {
         if (custom != null && custom.containsKey("iconItem")) {
             return custom.get("iconItem");
         }
-        return this.info.getCustomModProperties().get("iconItem");
+        Map<String,String> props = this.info.getCustomModProperties();
+        return props != null ? props.get("iconItem") : null;
     }
 
     @Nullable
     @Override
     public String getImageIcon() {
         Map<String, String> custom = CUSTOM_MOD_INFO.get(this.getModId());
-        if (custom != null && custom.containsKey("iconFile")) {
-            return custom.get("iconFile");
+        if (custom != null) {
+            if (custom.containsKey("iconFile")) return custom.get("iconFile");
+            // Make customized iconItem replace the old one
+            if (custom.containsKey("iconItem")) return null;
         }
-        // Make customized iconItem replace the old one
-        return custom != null && custom.containsKey("iconItem") ? null : this.info.getCustomModProperties().get("iconFile");
+        Map<String,String> props = this.info.getCustomModProperties();
+        return props != null ? props.get("iconFile") : null;
     }
 
     @Nullable
@@ -130,7 +133,8 @@ public class ForgeModData implements IModData {
         if (custom != null && custom.containsKey("license")) {
             return custom.get("license");
         }
-        return this.info.getCustomModProperties().get("license");
+        Map<String,String> props = this.info.getCustomModProperties();
+        return props != null ? props.get("license") : null;
     }
 
     @Nullable
@@ -190,7 +194,8 @@ public class ForgeModData implements IModData {
         if (custom != null && custom.containsKey("backgroundFile")) {
             return custom.get("backgroundFile");
         }
-        return this.info.getCustomModProperties().get("backgroundFile");
+        Map<String,String> props = this.info.getCustomModProperties();
+        return props != null ? props.get("backgroundFile") : null;
     }
 
     @Nullable
