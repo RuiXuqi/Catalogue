@@ -79,19 +79,22 @@ public class CleanroomModData implements IModData {
     @Nullable
     @Override
     public String getItemIcon() {
-        return this.info.getCustomModProperties().get("iconItem");
+        Map<String,String> props = this.info.getCustomModProperties();
+        return props != null ? props.get("iconItem") : null;
     }
 
     @Nullable
     @Override
     public String getImageIcon() {
-        return this.info.getCustomModProperties().get("iconFile");
+        Map<String,String> props = this.info.getCustomModProperties();
+        return props != null ? props.get("iconFile") : null;
     }
 
     @Nullable
     @Override
     public String getLicense() {
-        return this.info.getCustomModProperties().get("license");
+        Map<String,String> props = this.info.getCustomModProperties();
+        return props != null ? props.get("license") : null;
     }
 
     @Nullable
@@ -115,7 +118,8 @@ public class CleanroomModData implements IModData {
     @Nullable
     @Override
     public String getIssueTracker() {
-        return this.info.getCustomModProperties().get("issueTrackerUrl");
+        Map<String,String> props = this.info.getCustomModProperties();
+        return props != null ? props.get("issueTrackerUrl") : null;
     }
 
     @Nullable
@@ -127,7 +131,8 @@ public class CleanroomModData implements IModData {
     @Nullable
     @Override
     public String getBackground() {
-        return this.info.getCustomModProperties().get("backgroundFile");
+        Map<String,String> props = this.info.getCustomModProperties();
+        return props != null ? props.get("backgroundFile") : null;
     }
 
     @Nullable
