@@ -22,9 +22,9 @@ public enum ImageType {
         protected boolean validate(IModData data, BufferedImage image) {
             if (image.getWidth() != image.getHeight()) {
                 Catalogue.LOG.error("Invalid icon image for mod '{}': image must be a square", data.getModId());
-                return true;
+                return false;
             }
-            return false;
+            return true;
         }
     },
     BANNER("banner", IModData::getBanner) {
