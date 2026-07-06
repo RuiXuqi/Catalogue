@@ -8,6 +8,7 @@ import net.minecraft.client.gui.GuiVideoSettings;
 import javax.annotation.Nullable;
 
 public class OptiFineModData extends ForgeModData {
+    private static final String VERSION_PREFIX = "OptiFine_1.7.10_";
     private final String version;
 
     public OptiFineModData(ModContainer info) {
@@ -16,8 +17,8 @@ public class OptiFineModData extends ForgeModData {
     }
 
     private String getDisplayVersion() {
-        String version = this.getInnerVersion();
-        return version.substring(version.indexOf("OptiFine_1.7.10_") + 16);
+        String version = super.getVersion();
+        return version.startsWith(VERSION_PREFIX) ? version.substring(VERSION_PREFIX.length()) : version;
     }
 
     @Override
