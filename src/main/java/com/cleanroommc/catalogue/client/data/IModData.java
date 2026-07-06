@@ -1,11 +1,9 @@
 package com.cleanroommc.catalogue.client.data;
 
-import com.github.bsideup.jabel.Desugar;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.resources.IResourcePack;
 import net.minecraft.util.EnumChatFormatting;
-import net.minecraft.util.ResourceLocation;
 
 import javax.annotation.Nullable;
 import java.util.Set;
@@ -71,6 +69,7 @@ public interface IModData {
 
     void openConfigScreen(Minecraft minecraft, GuiScreen parent);
 
+    /*
     @Nullable
     CheckResult getCheckResult();
 
@@ -78,22 +77,23 @@ public interface IModData {
 
     @Nullable
     String getCheckText(CheckResult result);
+    */
 
-    /**
-     * @param updatable   Whether the mod is outdated and the icon is clickable.
-     * @param latestFound Latest version found in json.
-     * @param url         URL to download page.
-     */
-    @Desugar
-    record CheckResult(
-            boolean updatable,
-            boolean animated,
-            int texOffset,
-            ResourceLocation textures,
-            @Nullable String latestFound,
-            @Nullable String url
-    ) {
-    }
+//    /**
+//     * @param updatable   Whether the mod is outdated and the icon is clickable.
+//     * @param latestFound Latest version found in json.
+//     * @param url         URL to download page.
+//     */
+//    @Desugar
+//    record CheckResult(
+//            boolean updatable,
+//            boolean animated,
+//            int texOffset,
+//            ResourceLocation textures,
+//            @Nullable String latestFound,
+//            @Nullable String url
+//    ) {
+//    }
 
     enum Type {
         DEFAULT(EnumChatFormatting.WHITE),

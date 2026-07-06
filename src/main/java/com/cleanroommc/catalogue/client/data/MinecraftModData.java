@@ -110,11 +110,13 @@ public class MinecraftModData implements IModData {
         return null;
     }
 
+    /*
     @Nullable
     @Override
     public CheckResult getCheckResult() {
         return null;
     }
+    */
 
     @Nullable
     @Override
@@ -142,6 +144,7 @@ public class MinecraftModData implements IModData {
         minecraft.displayGuiScreen(new GuiOptions(parent, minecraft.gameSettings));
     }
 
+    /*
     @Override
     public void drawCheckIcon(Minecraft minecraft, CheckResult result, int x, int y) {
     }
@@ -151,4 +154,5 @@ public class MinecraftModData implements IModData {
     public String getCheckText(CheckResult result) {
         return null;
     }
+    */
 }

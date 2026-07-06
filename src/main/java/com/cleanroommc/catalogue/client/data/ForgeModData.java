@@ -2,7 +2,6 @@ package com.cleanroommc.catalogue.client.data;
 
 import com.cleanroommc.catalogue.Catalogue;
 import com.cleanroommc.catalogue.CatalogueConfig;
-import com.cleanroommc.catalogue.client.RenderUtils;
 import cpw.mods.fml.client.FMLClientHandler;
 import cpw.mods.fml.client.IModGuiFactory;
 import cpw.mods.fml.common.ModContainer;
@@ -10,9 +9,7 @@ import cpw.mods.fml.common.ModMetadata;
 import cpw.mods.fml.common.versioning.ArtifactVersion;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.resources.IResourcePack;
-import org.lwjgl.opengl.GL11;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -268,20 +265,21 @@ public class ForgeModData implements IModData {
         }
     }
 
+    /*
     @Nullable
     @Override
     public CheckResult getCheckResult() {
-//        ForgeVersion.CheckResult result = ForgeVersion.getResult(this.info);
-//        if (result.status.shouldDraw()) {
-//            return new CheckResult(
-//                    result.status == ForgeVersion.Status.OUTDATED || result.status == ForgeVersion.Status.BETA_OUTDATED,
-//                    result.status.isAnimated(),
-//                    result.status.getSheetOffset(),
-//                    VERSION_CHECK_ICONS,
-//                    result.target != null ? result.target.toString() : null,
-//                    result.url
-//            );
-//        }
+        ForgeVersion.CheckResult result = ForgeVersion.getResult(this.info);
+        if (result.status.shouldDraw()) {
+            return new CheckResult(
+                    result.status == ForgeVersion.Status.OUTDATED || result.status == ForgeVersion.Status.BETA_OUTDATED,
+                    result.status.isAnimated(),
+                    result.status.getSheetOffset(),
+                    VERSION_CHECK_ICONS,
+                    result.target != null ? result.target.toString() : null,
+                    result.url
+            );
+        }
         return null;
     }
 
@@ -299,23 +297,24 @@ public class ForgeModData implements IModData {
     @Nullable
     @Override
     public String getCheckText(CheckResult update) {
-//        ForgeVersion.CheckResult result = ForgeVersion.getResult(this.info);
-//        if (result == null) return null;
-//
-//        boolean hasPage = StringUtils.isNotBlank(update.url());
-//        return switch (result.status) {
-//            case BETA -> TextFormatting.GOLD + I18n.format("catalogue.gui.beta");
-//            case AHEAD -> TextFormatting.LIGHT_PURPLE + I18n.format("catalogue.gui.ahead", update.latestFound());
-//            case BETA_OUTDATED -> TextFormatting.GOLD + (hasPage ?
-//                    I18n.format("catalogue.gui.beta_update_available", update.latestFound(), update.url()) :
-//                    I18n.format("catalogue.gui.beta_update_available_no_page", update.latestFound()));
-//            case OUTDATED -> TextFormatting.GREEN + (hasPage ?
-//                    I18n.format("catalogue.gui.update_available", update.latestFound(), update.url()) :
-//                    I18n.format("catalogue.gui.update_available_no_page", update.latestFound()));
-//            default -> null;
-//        };
+        ForgeVersion.CheckResult result = ForgeVersion.getResult(this.info);
+        if (result == null) return null;
+
+        boolean hasPage = StringUtils.isNotBlank(update.url());
+        return switch (result.status) {
+            case BETA -> TextFormatting.GOLD + I18n.format("catalogue.gui.beta");
+            case AHEAD -> TextFormatting.LIGHT_PURPLE + I18n.format("catalogue.gui.ahead", update.latestFound());
+            case BETA_OUTDATED -> TextFormatting.GOLD + (hasPage ?
+                    I18n.format("catalogue.gui.beta_update_available", update.latestFound(), update.url()) :
+                    I18n.format("catalogue.gui.beta_update_available_no_page", update.latestFound()));
+            case OUTDATED -> TextFormatting.GREEN + (hasPage ?
+                    I18n.format("catalogue.gui.update_available", update.latestFound(), update.url()) :
+                    I18n.format("catalogue.gui.update_available_no_page", update.latestFound()));
+            default -> null;
+        };
         return null;
     }
+    */
 
     @Nullable
     @Override

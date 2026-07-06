@@ -68,7 +68,7 @@ public class CatalogueModListScreen extends GuiScreen implements DropdownMenuHan
     private static final MutableBoolean OPTION_HIDE_LIBRARIES = new MutableBoolean(true);
     private static final MutableBoolean OPTION_HIDE_CHILD_MODS = new MutableBoolean(true);
     private static final MutableBoolean OPTION_CONFIGS_ONLY = new MutableBoolean(false);
-    private static final MutableBoolean OPTION_UPDATES_ONLY = new MutableBoolean(false);
+//    private static final MutableBoolean OPTION_UPDATES_ONLY = new MutableBoolean(false);
     private static final MutableBoolean OPTION_FAVOURITES_ONLY = new MutableBoolean(false);
     private static final MutableObject<Comparator<ModListEntry>> OPTION_SORT = new MutableObject<>(SORT_ALPHABETICALLY);
     private static final ResourceLocation MISSING_BANNER = Catalogue.resource("textures/gui/missing_banner.png");
@@ -240,10 +240,10 @@ public class CatalogueModListScreen extends GuiScreen implements DropdownMenuHan
                             this.modList.filterAndUpdateList();
                             return false;
                         })
-                        .addCheckbox(I18n.format("catalogue.gui.filters.updates_only"), OPTION_UPDATES_ONLY, newValue -> {
-                            this.modList.filterAndUpdateList();
-                            return false;
-                        })
+//                        .addCheckbox(I18n.format("catalogue.gui.filters.updates_only"), OPTION_UPDATES_ONLY, newValue -> {
+//                            this.modList.filterAndUpdateList();
+//                            return false;
+//                        })
                         .addCheckbox(I18n.format("catalogue.gui.filters.favourites"), OPTION_FAVOURITES_ONLY, newValue -> {
                             this.modList.filterAndUpdateList();
                             return false;
@@ -380,6 +380,7 @@ public class CatalogueModListScreen extends GuiScreen implements DropdownMenuHan
         }
 
         // Version check button
+        /*
         if (this.selectedModData != null) {
             int contentLeft = this.modList.right + 12 + 10;
             String displayVersion = this.selectedModData.getVersion();
@@ -395,6 +396,7 @@ public class CatalogueModListScreen extends GuiScreen implements DropdownMenuHan
                 }
             }
         }
+        */
 
         // Search Text Field
         this.searchTextField.mouseClicked(mouseX, mouseY, button);
@@ -482,9 +484,11 @@ public class CatalogueModListScreen extends GuiScreen implements DropdownMenuHan
             if (OPTION_CONFIGS_ONLY.booleanValue() && !data.hasConfig()) {
                 return false;
             }
+            /*
             if (OPTION_UPDATES_ONLY.booleanValue() && (data.getCheckResult() == null || !data.getCheckResult().updatable())) {
                 return false;
             }
+            */
             if (OPTION_HIDE_LIBRARIES.booleanValue() && data.getType() == IModData.Type.LIBRARY) {
                 return false;
             }
@@ -641,11 +645,13 @@ public class CatalogueModListScreen extends GuiScreen implements DropdownMenuHan
             this.drawIcon(top, left);
 
             // Draws an icon if there is an update for the mod
+            /*
             IModData.CheckResult result = this.data.getCheckResult();
             if (result != null) {
                 int iconLeft = left + rowWidth - 8 - 9 + (drawFavouriteIcon ? -14 : 0);
                 this.data.drawCheckIcon(CatalogueModListScreen.this.mc, result, iconLeft, top + 7);
             }
+            */
 
             if (drawFavouriteIcon) {
                 this.button.xPosition = left + rowWidth - this.button.width - 8;
@@ -800,10 +806,12 @@ public class CatalogueModListScreen extends GuiScreen implements DropdownMenuHan
         private String getFormattedText(String text, boolean favouriteIconVisible) {
             int paddingEnd = 4;
             int trimWidth = this.list.getListWidth() - 24 - paddingEnd;
+            /*
             IModData.CheckResult result = this.data.getCheckResult();
             if (result != null) {
                 trimWidth -= 12;
             }
+            */
             if (favouriteIconVisible) {
                 trimWidth -= 18;
             }
@@ -937,6 +945,7 @@ public class CatalogueModListScreen extends GuiScreen implements DropdownMenuHan
             }
 
             // Draws an icon if there is an update for the mod
+            /*
             IModData.CheckResult result = this.selectedModData.getCheckResult();
             if (result != null) {
                 this.selectedModData.drawCheckIcon(this.mc, result, contentLeft + versionWidth + 5, 92);
@@ -947,6 +956,7 @@ public class CatalogueModListScreen extends GuiScreen implements DropdownMenuHan
                     }
                 }
             }
+            */
 
             // Draw fade from the bottom
             this.drawGradientRect(listRight + 12, this.height - 50, this.width, this.height, 0x00000000, 0x66000000);
