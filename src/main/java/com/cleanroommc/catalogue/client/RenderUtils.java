@@ -14,6 +14,7 @@ import org.lwjgl.opengl.GL11;
  * Author: MrCrayfish
  */
 public final class RenderUtils {
+    private static final float[] DEFAULT_COVER_FADE_ALPHA_LEVELS = {1.0F, 0.0F};
     private static final double PERIOD_PER_SCROLLED_PIXEL = 0.5D;
     private static final double MIN_SCROLL_PERIOD = 3.0D;
 
@@ -40,10 +41,14 @@ public final class RenderUtils {
         return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
     }
 
-    public static void drawCoverFade(Minecraft minecraft, ImageInfo image, int x, int y, int width, int height, float zLevel) {
+    /**
+     * Draws a cover-cropped texture with alpha levels distributed evenly from top to bottom.
+     */
+    public static void drawCoverFade(Minecraft mc, ImageInfo image, int x, int y, int width, int height, float zLevel, float... alphaLevels) {
         if (width <= 0 || height <= 0 || image.width() <= 0 || image.height() <= 0) return;
+        float[] levels = alphaLevels != null && alphaLevels.length >= 2 ? alphaLevels : DEFAULT_COVER_FADE_ALPHA_LEVELS;
 
-        minecraft.getTextureManager().bindTexture(image.resource());
+        mc.getTextureManager().bindTexture(image.resource());
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
 
@@ -74,14 +79,26 @@ public final class RenderUtils {
 
         Tessellator tess = Tessellator.instance;
         tess.startDrawingQuads();
-        tess.setColorRGBA_F(1.0F, 1.0F, 1.0F, 0.0F);
-        tess.addVertexWithUV(x, y + height, zLevel, u0, v1);
-        tess.setColorRGBA_F(1.0F, 1.0F, 1.0F, 0.0F);
-        tess.addVertexWithUV(x + width, y + height, zLevel, u1, v1);
-        tess.setColorRGBA_F(1.0F, 1.0F, 1.0F, 1.0F);
-        tess.addVertexWithUV(x + width, y, zLevel, u1, v0);
-        tess.setColorRGBA_F(1.0F, 1.0F, 1.0F, 1.0F);
-        tess.addVertexWithUV(x, y, zLevel, u0, v0);
+        int segments = levels.length - 1;
+        for (int i = 0; i < segments; i++) {
+            double topProgress = i / (double) segments;
+            double bottomProgress = (i + 1) / (double) segments;
+            double topY = y + height * topProgress;
+            double bottomY = y + height * bottomProgress;
+            double topV = v0 + (v1 - v0) * topProgress;
+            double bottomV = v0 + (v1 - v0) * bottomProgress;
+            float topAlpha = MathHelper.clamp_float(levels[i], 0.0F, 1.0F);
+            float bottomAlpha = MathHelper.clamp_float(levels[i + 1], 0.0F, 1.0F);
+
+            tess.setColorRGBA_F(1.0F, 1.0F, 1.0F, bottomAlpha);
+            tess.addVertexWithUV(x, bottomY, zLevel, u0, bottomV);
+            tess.setColorRGBA_F(1.0F, 1.0F, 1.0F, bottomAlpha);
+            tess.addVertexWithUV(x + width, bottomY, zLevel, u1, bottomV);
+            tess.setColorRGBA_F(1.0F, 1.0F, 1.0F, topAlpha);
+            tess.addVertexWithUV(x + width, topY, zLevel, u1, topV);
+            tess.setColorRGBA_F(1.0F, 1.0F, 1.0F, topAlpha);
+            tess.addVertexWithUV(x, topY, zLevel, u0, topV);
+        }
         tess.draw();
 
         GL11.glShadeModel(GL11.GL_FLAT);
