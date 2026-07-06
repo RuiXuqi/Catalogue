@@ -3,6 +3,7 @@ package com.cleanroommc.catalogue.client.screen.widget;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.util.MathHelper;
+import org.lwjgl.opengl.GL11;
 
 import javax.annotation.Nullable;
 import java.util.function.BiFunction;
@@ -88,6 +89,8 @@ public class CatalogueTextField extends GuiTextField {
             int selectionEndX = textStartX + this.field_146211_a.getStringWidth(visibleText.substring(0, selectionEndRel));
             this.drawCursorVertical(cursorX, textY - 1, selectionEndX - 1, textY + 1 + this.field_146211_a.FONT_HEIGHT);
         }
+
+        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
     }
 
     private String formatText(String text, int cursorPos) {

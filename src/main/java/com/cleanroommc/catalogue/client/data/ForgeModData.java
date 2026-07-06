@@ -109,7 +109,7 @@ public class ForgeModData implements IModData {
         if (custom != null && custom.containsKey("iconItem")) {
             return custom.get("iconItem");
         }
-        Map<String,String> props = this.info.getCustomModProperties();
+        Map<String, String> props = this.info.getCustomModProperties();
         return props != null ? props.get("iconItem") : null;
     }
 
@@ -122,7 +122,7 @@ public class ForgeModData implements IModData {
             // Make customized iconItem replace the old one
             if (custom.containsKey("iconItem")) return null;
         }
-        Map<String,String> props = this.info.getCustomModProperties();
+        Map<String, String> props = this.info.getCustomModProperties();
         return props != null ? props.get("iconFile") : null;
     }
 
@@ -133,7 +133,7 @@ public class ForgeModData implements IModData {
         if (custom != null && custom.containsKey("license")) {
             return custom.get("license");
         }
-        Map<String,String> props = this.info.getCustomModProperties();
+        Map<String, String> props = this.info.getCustomModProperties();
         return props != null ? props.get("license") : null;
     }
 
@@ -194,7 +194,7 @@ public class ForgeModData implements IModData {
         if (custom != null && custom.containsKey("backgroundFile")) {
             return custom.get("backgroundFile");
         }
-        Map<String,String> props = this.info.getCustomModProperties();
+        Map<String, String> props = this.info.getCustomModProperties();
         return props != null ? props.get("backgroundFile") : null;
     }
 
@@ -334,10 +334,9 @@ public class ForgeModData implements IModData {
     }
 
     private static Set<String> analyzeDependencies(ModContainer source) {
-        List<? extends ArtifactVersion> versions = source.getDependencies();
-        return versions.stream()
+        return source.getDependencies().stream()
                 .map(ArtifactVersion::getLabel)
-                .filter(modid -> !IGNORED_DEPENDENCIES.contains(modid))
+                .filter(modId -> !IGNORED_DEPENDENCIES.contains(modId))
                 .collect(Collectors.toSet());
     }
 
