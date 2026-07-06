@@ -171,7 +171,7 @@ public class ForgeModData implements IModData {
             if (factory == null) return;
             minecraft.displayGuiScreen(factory.createConfigGui(parent));
         } catch (Exception e) {
-            Catalogue.LOG.error("There was a critical issue trying to build the config GUI for {}", this.getModId(), e);
+            Catalogue.LOG.error("Failed to build config GUI for mod '{}'", this.getModId(), e);
         }
     }
 

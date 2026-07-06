@@ -7,6 +7,7 @@ import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.renderer.texture.TextureUtil;
 import net.minecraft.client.resources.IResourcePack;
+import net.minecraft.client.resources.ResourcePackFileNotFoundException;
 import net.minecraft.util.ResourceLocation;
 import org.apache.commons.lang3.StringUtils;
 
@@ -22,7 +23,7 @@ public enum ImageType {
         @Override
         protected boolean validate(IModData data, BufferedImage image) {
             if (image.getWidth() != image.getHeight()) {
-                Catalogue.LOG.error("Invalid icon image for mod '{}': image must be a square", data.getModId());
+                Catalogue.LOG.warn("Invalid icon image for mod '{}': image must be a square", data.getModId());
                 return false;
             }
             return true;
@@ -55,12 +56,16 @@ public enum ImageType {
         try {
             BufferedImage image = this.readImage(data, resource);
             if (image == null) {
-                Catalogue.LOG.error("Unable to locate the {} image resource '{}' for mod '{}'", this.type, resource, data.getModId());
+                Catalogue.LOG.warn("Failed to locate {} image resource '{}' for mod '{}'", this.type, resource, data.getModId());
                 return Optional.empty();
             }
             return this.validate(data, image) ? Optional.of(this.registerTexture(data, image)) : Optional.empty();
+        } catch (ResourcePackFileNotFoundException e) {
+            // Remove stack trace if getPackImage errored
+            Catalogue.LOG.warn("Failed to locate {} image {} for mod '{}'", this.type, e.getMessage(), data.getModId());
+            return Optional.empty();
         } catch (IOException e) {
-            Catalogue.LOG.error("An error occurred when loading the {} image resource '{}' for mod '{}'", this.type, resource, data.getModId(), e);
+            Catalogue.LOG.warn("Failed to load {} image resource '{}' for mod '{}'", this.type, resource, data.getModId(), e);
             return Optional.empty();
         }
     }

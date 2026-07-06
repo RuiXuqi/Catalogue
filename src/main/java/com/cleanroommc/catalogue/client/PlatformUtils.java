@@ -73,7 +73,7 @@ public final class PlatformUtils {
             Object object = oclass.getMethod("getDesktop", new Class[0]).invoke(null);
             oclass.getMethod("open", File.class).invoke(object, file);
         } catch (Exception e) {
-            Catalogue.LOG.error("Problem opening '{}' ", file.getAbsolutePath(), e);
+            Catalogue.LOG.error("Failed to open '{}' ", file.getAbsolutePath(), e);
         }
     }
 

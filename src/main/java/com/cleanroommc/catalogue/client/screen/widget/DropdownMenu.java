@@ -1,7 +1,6 @@
 package com.cleanroommc.catalogue.client.screen.widget;
 
 import com.cleanroommc.catalogue.Catalogue;
-import com.cleanroommc.catalogue.CatalogueConstants;
 import com.cleanroommc.catalogue.client.RenderUtils;
 import com.cleanroommc.catalogue.client.screen.DropdownMenuHandler;
 import com.github.bsideup.jabel.Desugar;
@@ -209,7 +208,7 @@ public class DropdownMenu extends Gui {
     }
 
     private static class CheckboxMenuItem extends MenuItem {
-        private static final ResourceLocation TEXTURE = new ResourceLocation(CatalogueConstants.MOD_ID, "textures/gui/checkbox.png");
+        private static final ResourceLocation TEXTURE = Catalogue.resource("textures/gui/checkbox.png");
 
         private final MutableBoolean holder;
         private final Function<Boolean, Boolean> callback;
