@@ -8,6 +8,7 @@ import cpw.mods.fml.client.FMLClientHandler;
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.ModContainer;
 import cpw.mods.fml.common.ModMetadata;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.Util;
@@ -158,5 +159,27 @@ public final class PlatformUtils {
 
     public static boolean isAltKeyDown() {
         return Keyboard.isKeyDown(Keyboard.KEY_LMENU) || Keyboard.isKeyDown(Keyboard.KEY_RMENU);
+    }
+
+    public static boolean hasGTNHLibConfig(String modId) {
+        try {
+            Class<?> managerClass = Class.forName("com.gtnewhorizon.gtnhlib.config.ConfigurationManager");
+            return Boolean.TRUE.equals(managerClass.getMethod("isModRegistered", String.class)
+                    .invoke(null, modId));
+        } catch (ReflectiveOperationException | LinkageError ignored) {
+            return false;
+        }
+    }
+
+    public static void openGTNHLibConfigScreen(Minecraft minecraft, GuiScreen parent, String modId, String modName) {
+        try {
+            Class<?> guiClass = Class.forName("com.gtnewhorizon.gtnhlib.config.SimpleGuiConfig");
+            GuiScreen configScreen = (GuiScreen) guiClass
+                    .getConstructor(GuiScreen.class, String.class, String.class)
+                    .newInstance(parent, modId, modName);
+            minecraft.displayGuiScreen(configScreen);
+        } catch (ReflectiveOperationException | LinkageError e) {
+            Catalogue.LOG.error("Failed to create GTNHLib config GUI for {}", modName, e);
+        }
     }
 }
