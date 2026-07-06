@@ -40,6 +40,7 @@ public final class CatalogueConfig {
             "FML",
             "mcp"
     };
+    public static String[] forceDefaultIconList = new String[]{};
     public static String[] customModInfo = new String[]{};
 
     static void init(File configFile) {
@@ -73,6 +74,14 @@ public final class CatalogueConfig {
                 "The list of ignored dependencies' mod ids."
                         + "\nThey will not be displayed when searching for dependencies/dependants."
         ).setRequiresMcRestart(true).setLanguageKey("catalogue.config.ignored_dependencies_list").getStringList();
+
+        forceDefaultIconList = CONFIG.get(
+                Configuration.CATEGORY_GENERAL,
+                "forceDefaultIconList",
+                loadDefault(Configuration.CATEGORY_GENERAL, "forceDefaultIconList", forceDefaultIconList),
+                "The list of mod ids that should always use the default item icon."
+                        + "\nThey will not have random-picked item icons to avoid crashes."
+        ).setRequiresMcRestart(true).setLanguageKey("catalogue.config.force_default_icon_list").getStringList();
 
         customModInfo = CONFIG.get(
                 Configuration.CATEGORY_GENERAL,

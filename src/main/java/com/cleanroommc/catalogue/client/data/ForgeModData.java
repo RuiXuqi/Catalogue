@@ -234,7 +234,7 @@ public class ForgeModData implements IModData {
                 GuiScreen configScreen = configGuiClass.getConstructor(GuiScreen.class).newInstance(parent);
                 minecraft.displayGuiScreen(configScreen);
             } catch (Exception e) {
-                Catalogue.LOG.error("Failed to build the config GUI for {}", this.getModId());
+                Catalogue.LOG.error("Failed to build config GUI for mod '{}'", this.getModId());
             }
         } else if (PlatformUtils.hasGTNHLibConfig(this.getModId())) {
             PlatformUtils.openGTNHLibConfigScreen(minecraft, parent, this.getModId(), this.getDisplayName());

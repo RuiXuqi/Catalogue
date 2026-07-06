@@ -85,7 +85,7 @@ public final class PlatformUtils {
                 Runtime.getRuntime().exec(new String[]{"/usr/bin/open", absolutePath});
                 return;
             } catch (Exception e) {
-                Catalogue.LOG.error("Problem opening '{}' ", absolutePath, e);
+                Catalogue.LOG.error("Failed to open '{}' via exec", absolutePath, e);
             }
         } else if (Util.getOSType() == Util.EnumOS.WINDOWS) {
             String openCommand = String.format("cmd.exe /C start \"Open file\" \"%s\"", absolutePath);
@@ -93,7 +93,7 @@ public final class PlatformUtils {
                 Runtime.getRuntime().exec(openCommand);
                 return;
             } catch (IOException e) {
-                Catalogue.LOG.error("Problem opening '{}' ", absolutePath, e);
+                Catalogue.LOG.error("Failed to open '{}' via exec", absolutePath, e);
             }
         }
 
@@ -103,13 +103,13 @@ public final class PlatformUtils {
             oclass.getMethod("open", File.class).invoke(object, file);
             return;
         } catch (Exception e) {
-            Catalogue.LOG.error("Problem opening '{}' ", absolutePath, e);
+            Catalogue.LOG.error("Failed to open '{}' via java.awt.Desktop", absolutePath, e);
         }
 
         try {
             Sys.openURL("file://" + absolutePath);
         } catch (Exception e) {
-            Catalogue.LOG.error("org.lwjgl.Sys failed: {}", absolutePath, e);
+            Catalogue.LOG.error("Failed to open '{}' via org.lwjgl.Sys", absolutePath, e);
         }
     }
 
@@ -125,7 +125,7 @@ public final class PlatformUtils {
             oclass.getMethod("browse", URI.class).invoke(object, uri);
             return;
         } catch (Exception e) {
-            Catalogue.LOG.warn("java.awt.Desktop browse failed: {}", uri, e);
+            Catalogue.LOG.error("Failed to open '{}' via java.awt.Desktop", uri, e);
         }
 
         try {
@@ -134,7 +134,7 @@ public final class PlatformUtils {
             desktopCls.getMethod("browse", URI.class).invoke(desktop, uri);
             return;
         } catch (Exception e) {
-            Catalogue.LOG.warn("me.eigenraven.lwjgl3ify.redirects.Desktop failed: {}", uri, e);
+            Catalogue.LOG.error("Failed to open '{}' via me.eigenraven.lwjgl3ify.redirects.Desktop", uri, e);
         }
 
         try {
@@ -143,13 +143,13 @@ public final class PlatformUtils {
                     .invoke(null, uri.toString())
             )) return;
         } catch (Exception e) {
-            Catalogue.LOG.warn("org.lwjglx.Sys.openURL failed: {}", uri, e);
+            Catalogue.LOG.error("Failed to open '{}' via org.lwjglx.Sys", uri, e);
         }
 
         try {
             Sys.openURL(uri.toString());
         } catch (Exception e) {
-            Catalogue.LOG.error("org.lwjgl.Sys failed: {}", uri, e);
+            Catalogue.LOG.error("Failed to open '{}' via org.lwjgl.Sys", uri, e);
         }
     }
 
@@ -179,7 +179,7 @@ public final class PlatformUtils {
                     .newInstance(parent, modId, modName);
             minecraft.displayGuiScreen(configScreen);
         } catch (ReflectiveOperationException | LinkageError e) {
-            Catalogue.LOG.error("Failed to create GTNHLib config GUI for {}", modName, e);
+            Catalogue.LOG.error("Failed to build GTNHLib config GUI for mod '{}'", modId, e);
         }
     }
 }

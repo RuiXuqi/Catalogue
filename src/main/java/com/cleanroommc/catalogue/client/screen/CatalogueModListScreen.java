@@ -1,6 +1,7 @@
 package com.cleanroommc.catalogue.client.screen;
 
 import com.cleanroommc.catalogue.Catalogue;
+import com.cleanroommc.catalogue.CatalogueConfig;
 import com.cleanroommc.catalogue.CatalogueConstants;
 import com.cleanroommc.catalogue.client.ImageInfo;
 import com.cleanroommc.catalogue.client.ImageType;
@@ -74,15 +75,14 @@ public class CatalogueModListScreen extends GuiScreen implements DropdownMenuHan
     private static final ResourceLocation MISSING_BANNER = Catalogue.resource("textures/gui/missing_banner.png");
     private static final ResourceLocation MISSING_BACKGROUND = Catalogue.resource("textures/gui/missing_background.png");
     private static final ResourceLocation MINECRAFT_LOGO = Catalogue.resource("textures/gui/minecraft.png");
-    private static final ImageInfo MISSING_BANNER_INFO = new ImageInfo(MISSING_BANNER, 120, 120, () -> {
-    });
-    private static final ImageInfo MISSING_BACKGROUND_INFO = new ImageInfo(MISSING_BACKGROUND, 512, 256, () -> {
-    });
+    private static final ImageInfo MISSING_BANNER_INFO = new ImageInfo(MISSING_BANNER, 120, 120);
+    private static final ImageInfo MISSING_BACKGROUND_INFO = new ImageInfo(MISSING_BACKGROUND, 512, 256);
     private static final Map<String, ImageInfo> BANNER_CACHE = new HashMap<>();
     private static final Map<String, ImageInfo> IMAGE_ICON_CACHE = new HashMap<>();
     private static final Map<String, ImageInfo> ICON_BANNER_CACHE = new HashMap<>();
     private static final Map<String, ItemStack> ITEM_ICON_CACHE = new HashMap<>();
     private static final Map<String, IModData> CACHED_MODS = new HashMap<>();
+    private static final List<String> FORCE_DEFAULT_ICON_MODS = Arrays.asList(CatalogueConfig.forceDefaultIconList);
     private static final Pattern MOD_ID_PATTERN = Pattern.compile("^[a-zA-Z][a-zA-Z0-9_]{1,63}$");
     private static final Supplier<Pair<Integer, Integer>> COUNTS = Suppliers.memoize(() -> {
         int[] counts = new int[2];
@@ -132,8 +132,7 @@ public class CatalogueModListScreen extends GuiScreen implements DropdownMenuHan
         if (!loaded) {
             PlatformUtils.getAllModData().forEach(data -> CACHED_MODS.put(data.getModId().toLowerCase(Locale.ENGLISH), data));
             CACHED_MODS.put("minecraft", new MinecraftModData()); // Override minecraft
-            BANNER_CACHE.put("minecraft", new ImageInfo(MINECRAFT_LOGO, 1024, 256, () -> {
-            }));
+            BANNER_CACHE.put("minecraft", new ImageInfo(MINECRAFT_LOGO, 1024, 256));
             FAVOURITES.load();
             loaded = true;
         }
@@ -695,9 +694,13 @@ public class CatalogueModListScreen extends GuiScreen implements DropdownMenuHan
                 CatalogueModListScreen.itemRender.renderItemAndEffectIntoGUI(CatalogueModListScreen.this.fontRendererObj, CatalogueModListScreen.this.mc.getTextureManager(), this.icon, left + 4, top + 2);
             } catch (Exception e) {
                 // Attempt to catch exceptions when rendering item. Sometime level instance isn't checked for null
-                Catalogue.LOG.debug("Failed to draw icon for mod '{}'", this.data.getModId(), e);
-                ITEM_ICON_CACHE.put(this.data.getModId(), new ItemStack(Blocks.grass));
-                this.icon = new ItemStack(Blocks.grass);
+                Catalogue.LOG.error("Failed to draw icon '{}' for mod '{}'. "
+                                + "To avoid issues, consider adding the mod to forceDefaultIconList",
+                        this.icon.toString(), this.data.getModId(), e
+                );
+                ItemStack grass = new ItemStack(Blocks.grass);
+                ITEM_ICON_CACHE.put(this.data.getModId(), grass);
+                this.icon = grass;
             }
 
             CatalogueModListScreen.this.zLevel = screenZ;
@@ -717,11 +720,15 @@ public class CatalogueModListScreen extends GuiScreen implements DropdownMenuHan
                 return ITEM_ICON_CACHE.get(this.data.getModId());
             }
 
+            ItemStack grass = new ItemStack(Blocks.grass);
+
             // Put grass as default item icon
-            ITEM_ICON_CACHE.put(this.data.getModId(), new ItemStack(Blocks.grass));
+            ITEM_ICON_CACHE.put(this.data.getModId(), grass);
+
+            if (FORCE_DEFAULT_ICON_MODS.contains(this.data.getModId())) return grass;
 
             // Minecraft is a grass block
-            if (this.data.getModId().equals("minecraft")) return new ItemStack(Blocks.grass);
+            if (this.data.getModId().equals("minecraft")) return grass;
 
             // Special case for Forge to set item icon to anvil
             if (this.data.getModId().equals("Forge")) {
@@ -744,7 +751,7 @@ public class CatalogueModListScreen extends GuiScreen implements DropdownMenuHan
                         return itemStack;
                     }
                 } catch (Exception e) {
-                    Catalogue.LOG.debug("Failed to get customized item icon for mod '{}'", this.data.getModId(), e);
+                    Catalogue.LOG.warn("Failed to get customized item icon for mod '{}'", this.data.getModId(), e);
                 }
             }
 
@@ -756,7 +763,7 @@ public class CatalogueModListScreen extends GuiScreen implements DropdownMenuHan
                         try {
                             return tab.getIconItemStack();
                         } catch (Exception e) {
-                            Catalogue.LOG.debug("Failed to get creative tab icon for mod '{}'", this.data.getModId(), e);
+                            Catalogue.LOG.warn("Failed to get creative tab icon for mod '{}'", this.data.getModId(), e);
                             return null;
                         }
                     })
@@ -789,7 +796,7 @@ public class CatalogueModListScreen extends GuiScreen implements DropdownMenuHan
                 }
             }
 
-            return new ItemStack(Blocks.grass);
+            return grass;
         }
 
         private String getFormattedModName(boolean favouriteIconVisible) {
@@ -868,8 +875,6 @@ public class CatalogueModListScreen extends GuiScreen implements DropdownMenuHan
         }
 
         private class PinnedButton extends GuiButton {
-            private static final ResourceLocation TEXTURE = new ResourceLocation(CatalogueConstants.MOD_ID, "textures/gui/icons.png");
-
             public PinnedButton() {
                 super(0, 0, 0, 10, 10, "");
             }
@@ -883,7 +888,7 @@ public class CatalogueModListScreen extends GuiScreen implements DropdownMenuHan
                 GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
                 GL11.glEnable(GL11.GL_BLEND);
                 OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ZERO);
-                mc.getTextureManager().bindTexture(TEXTURE);
+                mc.getTextureManager().bindTexture(CatalogueIconButton.ICON_TEXTURE);
                 RenderUtils.drawModalRectWithCustomSizedTexture(this.xPosition, this.yPosition, textureU, 10, 10, 10, 64, 64);
                 GL11.glDisable(GL11.GL_BLEND);
             }
@@ -1111,8 +1116,7 @@ public class CatalogueModListScreen extends GuiScreen implements DropdownMenuHan
                 // Hack to make icon fill max banner height
                 int expandedWidth = iconInfo.width() * 10;
                 int expandedHeight = iconInfo.height() * 10;
-                return new ImageInfo(iconInfo.resource(), expandedWidth, expandedHeight, () -> {
-                });
+                return new ImageInfo(iconInfo.resource(), expandedWidth, expandedHeight);
             });
         }
 
@@ -1337,8 +1341,8 @@ public class CatalogueModListScreen extends GuiScreen implements DropdownMenuHan
             } else {
                 PlatformUtils.openURI(uri);
             }
-        } catch (URISyntaxException urisyntaxexception) {
-            Catalogue.LOG.error("Failed to open url {}", url, urisyntaxexception);
+        } catch (URISyntaxException e) {
+            Catalogue.LOG.error("Failed to open url '{}'", url, e);
         }
     }
 

@@ -28,6 +28,8 @@ import org.apache.logging.log4j.Logger;
         }
 )
 public class Catalogue {
+    // ERROR only for critical, unrecoverable failures
+    // WARN for non-fatal issues or recoverable states
     public static final Logger LOG = LogManager.getLogger(CatalogueConstants.MOD_NAME);
 
     @SideOnly(Side.CLIENT)
