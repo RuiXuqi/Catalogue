@@ -79,21 +79,21 @@ public class CleanroomModData implements IModData {
     @Nullable
     @Override
     public String getItemIcon() {
-        Map<String,String> props = this.info.getCustomModProperties();
+        Map<String, String> props = this.info.getCustomModProperties();
         return props != null ? props.get("iconItem") : null;
     }
 
     @Nullable
     @Override
     public String getImageIcon() {
-        Map<String,String> props = this.info.getCustomModProperties();
+        Map<String, String> props = this.info.getCustomModProperties();
         return props != null ? props.get("iconFile") : null;
     }
 
     @Nullable
     @Override
     public String getLicense() {
-        Map<String,String> props = this.info.getCustomModProperties();
+        Map<String, String> props = this.info.getCustomModProperties();
         return props != null ? props.get("license") : null;
     }
 
@@ -118,7 +118,7 @@ public class CleanroomModData implements IModData {
     @Nullable
     @Override
     public String getIssueTracker() {
-        Map<String,String> props = this.info.getCustomModProperties();
+        Map<String, String> props = this.info.getCustomModProperties();
         return props != null ? props.get("issueTrackerUrl") : null;
     }
 
@@ -131,7 +131,7 @@ public class CleanroomModData implements IModData {
     @Nullable
     @Override
     public String getBackground() {
-        Map<String,String> props = this.info.getCustomModProperties();
+        Map<String, String> props = this.info.getCustomModProperties();
         return props != null ? props.get("backgroundFile") : null;
     }
 
@@ -239,10 +239,9 @@ public class CleanroomModData implements IModData {
     }
 
     private static Set<String> analyzeDependencies(ModContainer source) {
-        List<? extends ArtifactVersion> versions = source.getDependencies();
-        return versions.stream()
+        return source.getDependencies().stream()
                 .map(ArtifactVersion::getLabel)
-                .filter(modid -> !IGNORED_DEPENDENCIES.contains(modid))
+                .filter(modId -> !IGNORED_DEPENDENCIES.contains(modId))
                 .collect(Collectors.toUnmodifiableSet());
     }
 
