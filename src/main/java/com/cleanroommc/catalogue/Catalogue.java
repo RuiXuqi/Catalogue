@@ -23,6 +23,8 @@ import org.slf4j.LoggerFactory;
         }
 )
 public class Catalogue {
+    // ERROR only for critical, unrecoverable failures
+    // WARN for non-fatal issues or recoverable states
     public static final Logger LOG = LoggerFactory.getLogger(CatalogueConstants.MOD_NAME);
 
     public static ResourceLocation resource(String name) {

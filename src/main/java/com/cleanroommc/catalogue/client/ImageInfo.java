@@ -6,4 +6,10 @@ import net.minecraft.util.ResourceLocation;
  * Author: MrCrayfish
  */
 public record ImageInfo(ResourceLocation resource, int width, int height, Runnable unregister) {
+    public static final Runnable EMPTY_UNREGISTER = () -> {
+    };
+
+    public ImageInfo(ResourceLocation resource, int width, int height) {
+        this(resource, width, height, EMPTY_UNREGISTER);
+    }
 }
