@@ -1169,7 +1169,8 @@ public class CatalogueModListScreen extends GuiScreen implements DropdownMenuHan
 
         ImageInfo background = cachedBackground != null ? cachedBackground : MISSING_BACKGROUND_INFO;
         int backgroundHeight = MathHelper.clamp(this.height / 3, 128, 180);
-        RenderUtils.drawCoverFade(this.mc, background, contentLeft, contentTop, contentWidth, backgroundHeight, this.zLevel);
+        RenderUtils.drawCoverFade(this.mc, background, contentLeft, contentTop, contentWidth, backgroundHeight, this.zLevel,
+                1.0F, 1.0F, 0.65F, 0.25F, 0.0F);
     }
 
     @SuppressWarnings("SameParameterValue")
