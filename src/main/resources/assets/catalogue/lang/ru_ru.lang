@@ -7,7 +7,6 @@ catalogue.gui.submit_bug=Сообщить баг
 catalogue.gui.open_mods_folder=Открыть папку модов
 catalogue.gui.licenses=Лицензия(и): %s
 catalogue.gui.authors=Автор(ы): %s
-catalogue.gui.contributors=Участник(ы): %s
 catalogue.gui.credits=Приписание: %s
 catalogue.gui.version=Версия: %s
 catalogue.gui.update_available=Обновление: %s

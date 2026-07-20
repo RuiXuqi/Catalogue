@@ -49,7 +49,7 @@ public class CatalogueListExtended<E extends GuiListExtended.IGuiListEntry> exte
         this.drawContainerBackground(tess);
 
         // Customized header. Empty by default
-        if (this.hasListHeader) this.drawListHeader(this.left + this.getListLeft(), this.getListTop(), tess);
+        if (this.hasListHeader) this.drawListHeader(this.getListLeft(), this.getListTop(), tess);
 
         this.renderListItems(mouseX, mouseY, partialTicks);
 
@@ -121,8 +121,8 @@ public class CatalogueListExtended<E extends GuiListExtended.IGuiListEntry> exte
 
     protected void renderListItems(int mouseX, int mouseY, float partialTicks) {
         for (int index = 0; index < this.getSize(); ++index) {
-            int rowLeft = this.left + this.getListLeft();
-            int rowRight = this.left + this.getListRight();
+            int rowLeft = this.getListEntryLeft();
+            int rowRight = this.getListRight();
             int rowTop = this.getRowTop(index);
             int rowBottom = this.getRowBottom(index) - 4;
 
@@ -153,8 +153,8 @@ public class CatalogueListExtended<E extends GuiListExtended.IGuiListEntry> exte
 
         if (mouseOverList) {
             if (Mouse.getEventButton() == 0 && Mouse.getEventButtonState()) {
-                int listLeft = this.left + this.getListLeft();
-                int listRight = this.left + this.getListRight();
+                int listLeft = this.getListLeft();
+                int listRight = this.getListRight();
                 boolean beforeScrollBar = this.isMouseBeforeScrollBar(hasScrollBar, this.mouseX);
 
                 int relativeY = this.mouseY - this.top - this.headerPadding + (int) this.amountScrolled - 4;
@@ -174,8 +174,8 @@ public class CatalogueListExtended<E extends GuiListExtended.IGuiListEntry> exte
                 if (mouseOverList) {
                     boolean clickedOnHeader = false;
 
-                    int listLeft = this.left + this.getListLeft();
-                    int listRight = this.left + this.getListRight();
+                    int listLeft = this.getListLeft();
+                    int listRight = this.getListRight();
                     int relativeY = this.mouseY - this.top - this.headerPadding + (int) this.amountScrolled - 4;
                     int slotIndex = relativeY / this.slotHeight;
                     boolean beforeScrollBar = this.isMouseBeforeScrollBar(hasScrollBar, this.mouseX);
@@ -238,7 +238,7 @@ public class CatalogueListExtended<E extends GuiListExtended.IGuiListEntry> exte
 
         int slotIndex = this.getSlotIndexFromScreenCoords(mouseX, mouseY);
         if (slotIndex >= 0) {
-            int rowLeft = this.left + this.getListLeft();
+            int rowLeft = this.getListEntryLeft();
             int rowTop = this.getRowTop(slotIndex);
             int relativeX = mouseX - rowLeft;
             int relativeY = mouseY - rowTop;
@@ -258,7 +258,7 @@ public class CatalogueListExtended<E extends GuiListExtended.IGuiListEntry> exte
         }
 
         for (int slotIndex = 0; slotIndex < this.getSize(); ++slotIndex) {
-            int rowLeft = this.left + this.getListLeft();
+            int rowLeft = this.getListEntryLeft();
             int rowTop = this.getRowTop(slotIndex);
             int relativeX = mouseX - rowLeft;
             int relativeY = mouseY - rowTop;
@@ -273,8 +273,8 @@ public class CatalogueListExtended<E extends GuiListExtended.IGuiListEntry> exte
         if (!this.isMouseWithinListBounds(mouseX, mouseY)) return -1;
 
         boolean hasScrollBar = this.shouldShowScrollBar();
-        int listLeft = this.left + this.getListLeft();
-        int listRight = this.left + this.getListRight();
+        int listLeft = this.getListLeft();
+        int listRight = this.getListRight();
         int relativeY = MathHelper.floor(mouseY - this.top) - this.headerPadding + this.getAmountScrolled() - 4;
         int slotIndex = relativeY / this.slotHeight;
         boolean beforeScrollBar = this.isMouseBeforeScrollBar(hasScrollBar, mouseX);
@@ -298,7 +298,7 @@ public class CatalogueListExtended<E extends GuiListExtended.IGuiListEntry> exte
     }
 
     private int getScrollBarLeft() {
-        return this.left + this.getScrollBarX();
+        return this.getScrollBarX();
     }
 
     private int getScrollBarRight() {
@@ -339,7 +339,7 @@ public class CatalogueListExtended<E extends GuiListExtended.IGuiListEntry> exte
     }
 
     /**
-     * Returns the scrollbar x-coordinate relative to this list's left bound.
+     * Returns the scrollbar x-coordinate in screen coordinates.
      */
     @Override
     protected int getScrollBarX() {
@@ -355,17 +355,24 @@ public class CatalogueListExtended<E extends GuiListExtended.IGuiListEntry> exte
     }
 
     /**
-     * Returns the row content left edge relative to this list's left bound.
+     * Returns the row content left edge in screen coordinates.
      */
     protected int getListLeft() {
-        return this.width / 2 - this.getListWidth() / 2 + 2;
+        return this.left + this.width / 2 - this.getListWidth() / 2 + 2;
     }
 
     /**
-     * Returns the row content right edge relative to this list's left bound.
+     * Returns the row content right edge in screen coordinates.
      */
     protected int getListRight() {
         return this.getListLeft() + this.getListWidth();
+    }
+
+    /**
+     * Returns the left edge used when positioning list entries in screen coordinates.
+     */
+    protected int getListEntryLeft() {
+        return this.getListLeft();
     }
 
     /**
@@ -402,29 +409,29 @@ public class CatalogueListExtended<E extends GuiListExtended.IGuiListEntry> exte
     @Nonnull
     @Override
     public E getListEntry(int slotIndex) {
-        return this.children().get(slotIndex);
+        return this.children.get(slotIndex);
     }
 
     @Override
     protected int getSize() {
-        return this.children().size();
+        return this.children.size();
     }
 
     public void centerScrollOn(E entry) {
-        this.setAmountScrolled((float) (this.children().indexOf(entry) * this.slotHeight + this.slotHeight / 2 - (this.bottom - this.top) / 2));
+        this.setAmountScrolled((float) (this.children.indexOf(entry) * this.slotHeight + this.slotHeight / 2 - (this.bottom - this.top) / 2));
     }
 
     public void addEntry(E entry) {
-        this.children().add(entry);
+        this.children.add(entry);
     }
 
     public void clearEntries() {
-        this.children().clear();
+        this.children.clear();
     }
 
     public void replaceEntries(Collection<E> entries) {
         this.clearEntries();
-        this.children().addAll(entries);
+        this.children.addAll(entries);
     }
 
     public void removeEntries(List<E> entries) {
